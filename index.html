@@ -508,7 +508,8 @@ function parseCSVLine(line) {
 async function syncFromSheet(manual=false) {
   setSyncStatus('⏳ Sincronizando con Google Sheet...', 'sync-gray');
   try {
-    const res = await fetch(SHEET_CSV, {credentials:'include'});
+    const url = `${SHEET_CSV}&_=${Date.now()}`;
+    const res = await fetch(url, {credentials:'include', cache:'no-store'});
     if(!res.ok) throw new Error(res.status);
     const text = await res.text();
     const rows = parseCSV(text);

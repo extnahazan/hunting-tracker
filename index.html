@@ -58,11 +58,11 @@ body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:#EBEBEB;color:#1
 .kpi-grid{display:block;margin-bottom:24px}
 
 /* ── KPI CARDS ── */
-.kpi{background:#fff;border-radius:12px;padding:20px 20px 18px;box-shadow:var(--shadow);border:none;border-top:4px solid transparent;transition:box-shadow .15s;display:flex;flex-direction:column;gap:4px}
+.kpi{background:#fff;border-radius:12px;padding:18px 18px 16px;box-shadow:var(--shadow);border:none;border-top:4px solid transparent;transition:box-shadow .15s;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
 .kpi:hover{box-shadow:var(--shadow-md)}
-.kpi .lbl{font-size:10px;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:.7px;line-height:1.3}
-.kpi .val{font-size:30px;font-weight:800;color:var(--dark);letter-spacing:-1.5px;line-height:1.1;margin:4px 0 2px}
-.kpi .sub{font-size:11.5px;color:#888;line-height:1.5}
+.kpi .lbl{font-size:10px;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:.7px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .val{font-size:28px;font-weight:800;color:var(--dark);letter-spacing:-1.5px;line-height:1.1;margin:4px 0}
+.kpi .sub{font-size:11px;color:#888;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .kpi.c-blue{border-top-color:var(--blue)}.kpi.c-blue .val{color:var(--blue)}
 .kpi.c-green{border-top-color:var(--green)}.kpi.c-green .val{color:var(--green)}
 .kpi.c-amber{border-top-color:var(--amber)}.kpi.c-amber .val{color:var(--amber)}
@@ -78,8 +78,7 @@ body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:#EBEBEB;color:#1
 .kpi-group{margin-bottom:0}
 .kpi-group-lbl{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-left:2px;display:flex;align-items:center;gap:8px}
 .kpi-group-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
-.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.kpi{min-height:112px}
+.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:124px;gap:10px}
 @media(max-width:900px){.kpi-sections{grid-template-columns:1fr}}
 
 /* ── SECTION HEADERS ── */
@@ -654,10 +653,10 @@ function renderDashboard() {
       <div class="kpi-group">
         <div class="kpi-group-lbl">📞 Llamadas — ${config.period}</div>
         <div class="kpi-row">
-          <div class="kpi c-blue"><div class="lbl">Total del mes</div><div class="val">${m.total}</div><div class="sub">~${cpd.toFixed(1)} llamadas/día · ${daysEl} día${daysEl!==1?'s':''} activos</div></div>
-          <div class="kpi c-purple"><div class="lbl">Meta ${isPersonal?'personal':'equipo'}</div><div class="val">${myCallGoal}</div><div class="sub">${config.callTarget}/día × ${config.days} días${isPersonal?'':' · '+indCallGoal+'/hunter'}</div></div>
-          <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAns}% del total de llamadas</div></div>
-          <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAns}% del total de llamadas</div></div>
+          <div class="kpi c-blue"><div class="lbl">Total del mes</div><div class="val">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${daysEl}d activos</div></div>
+          <div class="kpi c-purple"><div class="lbl">Meta ${isPersonal?'personal':'equipo'}</div><div class="val">${myCallGoal}</div><div class="sub">${config.callTarget}/día × ${config.days}d${isPersonal?'':' · '+indCallGoal+'/hunter'}</div></div>
+          <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAns}% del total</div></div>
+          <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAns}% del total</div></div>
         </div>
       </div>
       <div class="kpi-group">

@@ -602,9 +602,9 @@ function renderDashboard() {
   const pctNoInt= m.attended  ? (100-m.rInterest*100).toFixed(0): 0;
   document.getElementById('globalKpis').innerHTML = `
     <div class="kpi-group">
-      <div class="kpi-group-lbl">📞 Llamadas</div>
+      <div class="kpi-group-lbl">📞 Llamadas — ${config.period}</div>
       <div class="kpi-row">
-        <div class="kpi c-blue"><div class="lbl">Total llamadas</div><div class="val">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${m.uniqueBrands} marcas</div></div>
+        <div class="kpi c-blue" style="border-width:4px;border-left-width:6px"><div class="lbl">Total del mes</div><div class="val" style="font-size:32px">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${daysEl} día${daysEl!==1?'s':''} con llamadas</div></div>
         <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAns}% del total</div></div>
         <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAns}% del total</div></div>
       </div>
@@ -977,9 +977,9 @@ function renderHunters() {
   const pctIntH  = m.attended ? (m.rInterest*100).toFixed(0): 0;
   const kpisHTML = `
     <div class="kpi-group">
-      <div class="kpi-group-lbl">📞 Llamadas</div>
+      <div class="kpi-group-lbl">📞 Llamadas — ${config.period}</div>
       <div class="kpi-row">
-        <div class="kpi c-blue"><div class="lbl">Total</div><div class="val">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${m.uniqueBrands} marcas</div></div>
+        <div class="kpi c-blue" style="border-left-width:6px"><div class="lbl">Total del mes</div><div class="val" style="font-size:32px">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${m.uniqueBrands} marcas</div></div>
         <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAnsH}% del total</div></div>
         <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAnsH}% del total</div></div>
       </div>

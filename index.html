@@ -78,7 +78,8 @@ body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:#EBEBEB;color:#1
 .kpi-group{margin-bottom:0}
 .kpi-group-lbl{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-left:2px;display:flex;align-items:center;gap:8px}
 .kpi-group-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
-.kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.kpi{min-height:112px}
 @media(max-width:900px){.kpi-sections{grid-template-columns:1fr}}
 
 /* ── SECTION HEADERS ── */
@@ -665,6 +666,7 @@ function renderDashboard() {
           <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${m.interested}</div><div class="sub">${pctInt}% de los que atendieron</div></div>
           <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${m.noInt}</div><div class="sub">${pctNoInt}% de los que atendieron</div></div>
           <div class="kpi c-amber"><div class="lbl">Interés → reunión</div><div class="val">${(m.rMeetInt*100).toFixed(0)}%</div><div class="sub">${m.meetings} reunión${m.meetings!==1?'es':''} de ${m.interested} interesados</div></div>
+          <div class="kpi c-teal"><div class="lbl">Seguimientos</div><div class="val">${m.followUp}</div><div class="sub">Marcas a volver a llamar</div></div>
         </div>
       </div>
       <div class="kpi-group">
@@ -1074,6 +1076,7 @@ function renderHunters() {
           <div class="kpi c-amber"><div class="lbl">Llamada → reunión</div><div class="val">${(m.rMeet*100).toFixed(1)}%</div><div class="sub">1 reunión cada ${m.rMeet>0?Math.round(1/m.rMeet):'-'} llamadas</div></div>
         </div>
       </div>
+      <div class="kpi-group" style="display:none"><!-- placeholder to keep hunter sections aligned --></div>
       <div class="kpi-group">
         <div class="kpi-group-lbl">✅ Pipeline y marcas</div>
         <div class="kpi-row">

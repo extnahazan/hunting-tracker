@@ -58,8 +58,11 @@ body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:#EBEBEB;color:#1
 .kpi-grid{display:block;margin-bottom:24px}
 
 /* ── KPI CARDS ── */
-.kpi{background:#fff;border-radius:12px;padding:18px 18px 16px;box-shadow:var(--shadow);border:none;border-top:4px solid transparent;transition:box-shadow .15s;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
-.kpi:hover{box-shadow:var(--shadow-md)}
+.kpi{background:#F7F8FA;border-radius:10px;padding:14px 16px 12px;box-shadow:none;border:none;border-top:4px solid transparent;transition:background .15s;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.kpi:hover{background:#F0F2F5}
+/* When kpi is direct child of kpi-grid (dashboard view without group wrapper), restore card style */
+.kpi-grid > .kpi{background:#fff;border-radius:12px;box-shadow:var(--shadow)}
+.kpi-grid > .kpi:hover{box-shadow:var(--shadow-md);background:#fff}
 .kpi .lbl{font-size:10px;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:.7px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi .val{font-size:28px;font-weight:800;color:var(--dark);letter-spacing:-1.5px;line-height:1.1;margin:4px 0}
 .kpi .sub{font-size:11px;color:#888;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
@@ -74,11 +77,11 @@ body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:#EBEBEB;color:#1
 
 /* ── KPI GROUPS ── */
 /* 3 secciones en columnas */
-.kpi-sections{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start}
-.kpi-group{margin-bottom:0}
-.kpi-group-lbl{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-left:2px;display:flex;align-items:center;gap:8px}
+.kpi-sections{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start;margin-bottom:24px}
+.kpi-group{background:#fff;border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+.kpi-group-lbl{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;padding-left:2px;display:flex;align-items:center;gap:8px}
 .kpi-group-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
-.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:124px;gap:10px}
+.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:112px;gap:8px}
 @media(max-width:900px){.kpi-sections{grid-template-columns:1fr}}
 
 /* ── SECTION HEADERS ── */

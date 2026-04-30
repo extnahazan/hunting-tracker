@@ -510,24 +510,40 @@ async function syncFromSheet(manual=false) {
   try {
     const url = `${SHEET_CSV}&_=${Date.now()}`;
     const res = await fetch(url, {credentials:'include', cache:'no-store'});
-    if(!res.ok) throw new Error(res.status);
+    if(!res.ok) throw new Error('http_'+res.status);
     const text = await res.text();
+
+    // Detectar si Google devolvió una página de login en lugar de CSV
+    if(text.trim().startsWith('<') || text.includes('accounts.google.com')) {
+      throw new Error('not_public');
+    }
+
     const rows = parseCSV(text);
+    console.log('[Sync] Filas recibidas del Sheet:', rows.length, rows.slice(0,2));
+
     if(rows.length === 0) throw new Error('empty');
+
     calls = rows;
     persist();
     lastSync = new Date();
     localStorage.setItem('hunting_last_sync', lastSync.toISOString());
     refresh();
     const t = lastSync.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
-    setSyncStatus(`🟢 Sheet conectado · Actualizado hoy a las ${t} · ${calls.length} registros`, 'sync-green');
+    setSyncStatus(`🟢 Conectado · ${calls.length} filas · Actualizado ${t}`, 'sync-green');
+
   } catch(e) {
+    console.error('[Sync] Error:', e.message);
     const ls = localStorage.getItem('hunting_last_sync');
-    const since = ls ? `Último sync: ${new Date(ls).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}` : 'nunca sincronizado';
-    if(manual) {
-      setSyncStatus('🔴 Sin acceso al Sheet. Abrilo → Compartir → "Cualquier persona con el enlace" → Ver. Luego presioná ↻ Sincronizar.', 'sync-red');
+    const since = ls ? `último sync ${new Date(ls).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}` : 'nunca sincronizado';
+
+    if(e.message === 'not_public') {
+      setSyncStatus('🔴 El Sheet no es público. Abrilo → Compartir → "Cualquier persona con el enlace puede ver" → Guardar. Luego ↻ Sincronizar.', 'sync-red');
+    } else if(e.message === 'empty') {
+      setSyncStatus('🔴 El Sheet se leyó pero no tiene filas con datos. ¿Las columnas tienen los nombres correctos? (marca, hunter, fecha…)', 'sync-red');
+    } else if(manual) {
+      setSyncStatus(`🔴 No se pudo conectar al Sheet (${e.message}). Verificá que sea público y tenga conexión a internet.`, 'sync-red');
     } else {
-      setSyncStatus(`🟡 Datos locales (${since}) — presioná ↻ Sincronizar para conectar al Sheet`, 'sync-amber');
+      setSyncStatus(`🟡 Usando datos locales (${since}) — presioná ↻ Sincronizar`, 'sync-amber');
     }
   }
 }

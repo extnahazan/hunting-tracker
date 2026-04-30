@@ -39,7 +39,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f5f9;color:#1e293b;fo
 
 /* CARDS */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
-.kpi{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;flex:1;min-width:130px}
 .kpi .lbl{font-size:10px;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 .kpi .val{font-size:26px;font-weight:700;margin:3px 0 1px;color:var(--dark)}
 .kpi .sub{font-size:11px;color:var(--gray)}
@@ -49,6 +49,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f5f9;color:#1e293b;fo
 .kpi.c-red{border-left:4px solid var(--red)}.kpi.c-red .val{color:var(--red)}
 .kpi.c-purple{border-left:4px solid var(--purple)}.kpi.c-purple .val{color:var(--purple)}
 .kpi.c-teal{border-left:4px solid var(--teal)}.kpi.c-teal .val{color:var(--teal)}
+.kpi.c-gray{border-left:4px solid #94a3b8}.kpi.c-gray .val{color:#475569}
+/* KPI GROUPS */
+.kpi-group{margin-bottom:12px}
+.kpi-group-lbl{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px;padding-left:2px}
+.kpi-row{display:flex;gap:10px;flex-wrap:wrap}
+.kpi-row .kpi{flex:1;min-width:130px}
 
 /* SECTION HEADERS */
 .sec{font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
@@ -239,6 +245,15 @@ textarea:focus{border-color:var(--blue)}
       <div style="position:relative;height:180px"><canvas id="hunterCompareChart" role="img" aria-label="Comparativa de métricas por hunter"></canvas></div>
     </div>
   </div>
+
+  <div class="sec">🏷️ Marcas llamadas</div>
+  <div class="chart-grid" style="margin-bottom:16px">
+    <div class="chart-card" style="grid-column:1/-1">
+      <h3>Llamadas por marca — resultado de cada una</h3>
+      <div style="position:relative;height:240px"><canvas id="brandsChart" role="img" aria-label="Llamadas por marca"></canvas></div>
+    </div>
+  </div>
+  <div id="brandsTable" style="margin-bottom:24px"></div>
 
 </div>
 
@@ -514,18 +529,26 @@ function syncConfigUI() {
 
 // ─── METRICS HELPERS ──────────────────────────────────────────────────────
 function metricsFor(subset) {
-  const total    = subset.length;
-  const attended = subset.filter(c=>c.atendio==='Sí').length;
-  const meetings = subset.filter(c=>c.resultado==='Reunión agendada').length;
-  const closed   = subset.filter(c=>c.resReunion==='Cerrado').length;
-  const warm     = subset.filter(c=>c.resReunion==='En proceso').length;
-  const noInt    = subset.filter(c=>c.resultado==='No interesado').length;
-  const followUp = subset.filter(c=>c.resultado==='Volver a llamar'||c.notas.toLowerCase().includes('viaje')).length;
-  const rAns  = total    ? attended/total   : 0;
-  const rMeet = total    ? meetings/total   : 0;
-  const rMeetAns = attended ? meetings/attended : 0;
-  const rClose= meetings ? closed/meetings  : 0;
-  return {total,attended,meetings,closed,warm,noInt,followUp,rAns,rMeet,rMeetAns,rClose};
+  const total      = subset.length;
+  const attended   = subset.filter(c=>c.atendio==='Sí').length;
+  const noAttended = total - attended;
+  const meetings   = subset.filter(c=>c.resultado==='Reunión agendada').length;
+  const closed     = subset.filter(c=>c.resReunion==='Cerrado').length;
+  const warm       = subset.filter(c=>c.resReunion==='En proceso').length;
+  const noInt      = subset.filter(c=>c.resultado==='No interesado').length;
+  // "Con interés" = atendieron Y mostraron señal positiva (reunión o volver a llamar)
+  const interested = subset.filter(c=>c.resultado==='Reunión agendada'||c.resultado==='Volver a llamar').length;
+  const followUp   = subset.filter(c=>c.resultado==='Volver a llamar'||c.notas.toLowerCase().includes('viaje')).length;
+  const uniqueBrands      = new Set(subset.map(c=>c.marca).filter(Boolean)).size;
+  const brandsWithMeeting = new Set(subset.filter(c=>c.resultado==='Reunión agendada').map(c=>c.marca)).size;
+  const rAns      = total      ? attended/total      : 0;
+  const rMeet     = total      ? meetings/total      : 0;
+  const rMeetAns  = attended   ? meetings/attended   : 0;
+  const rClose    = meetings   ? closed/meetings     : 0;
+  const rInterest = attended   ? interested/attended : 0;
+  const rMeetInt  = interested ? meetings/interested : 0;
+  return {total,attended,noAttended,meetings,closed,warm,noInt,interested,followUp,
+          uniqueBrands,brandsWithMeeting,rAns,rMeet,rMeetAns,rClose,rInterest,rMeetInt};
 }
 function uniqueDays(subset) { return new Set((subset||calls).map(c=>c.fecha)).size; }
 function hunterColor(name) {
@@ -572,20 +595,37 @@ function renderDashboard() {
     : `Resumen del equipo — <span id="dashPeriod">${config.period}</span>`;
   if(document.getElementById('dashPeriod')) document.getElementById('dashPeriod').textContent = config.period;
 
-  // Global KPIs
-  const kpiDefs = [
-    {lbl:'Llamadas totales',  val:m.total,                           sub:`~${cpd.toFixed(1)}/día promedio`,   cls:'c-blue'},
-    {lbl:'Tasa de respuesta', val:(m.rAns*100).toFixed(1)+'%',       sub:`${m.attended} atendieron`,          cls:'c-blue'},
-    {lbl:'Resp. → reunión',   val:(m.rMeetAns*100).toFixed(1)+'%',   sub:`${m.meetings} reuniones agendadas`, cls:'c-amber'},
-    {lbl:'Llamada → reunión', val:(m.rMeet*100).toFixed(1)+'%',      sub:`1 reunión cada ${m.rMeet>0?Math.round(1/m.rMeet):'-'} llamadas`,cls:'c-amber'},
-    {lbl:'Marcas cerradas',   val:m.closed,                          sub:`Meta equipo: ${g}`,                 cls:'c-green'},
-    {lbl:'Tasa de cierre',    val:m.meetings>0?(m.rClose*100).toFixed(1)+'%':'—', sub:'De reunión a cierre',  cls:'c-green'},
-    {lbl:'Pipeline activo',   val:m.meetings+m.warm,                 sub:`${m.meetings} reuniones + ${m.warm} en proceso`,cls:'c-purple'},
-    {lbl:'Seguimientos',      val:m.followUp,                        sub:'Volver a llamar/de viaje',          cls:'c-teal'},
-    {lbl:'No interesados',    val:m.noInt,                           sub:(m.total?(m.noInt/m.total*100).toFixed(1):0)+'% del total',cls:'c-red'},
-  ];
-  document.getElementById('globalKpis').innerHTML = kpiDefs.map(k=>`
-    <div class="kpi ${k.cls}"><div class="lbl">${k.lbl}</div><div class="val">${k.val}</div><div class="sub">${k.sub}</div></div>`).join('');
+  // Global KPIs — agrupados por categoría
+  const pctAns  = m.total     ? (m.rAns*100).toFixed(0)     : 0;
+  const pctNoAns= m.total     ? (100-m.rAns*100).toFixed(0) : 0;
+  const pctInt  = m.attended  ? (m.rInterest*100).toFixed(0): 0;
+  const pctNoInt= m.attended  ? (100-m.rInterest*100).toFixed(0): 0;
+  document.getElementById('globalKpis').innerHTML = `
+    <div class="kpi-group">
+      <div class="kpi-group-lbl">📞 Llamadas</div>
+      <div class="kpi-row">
+        <div class="kpi c-blue"><div class="lbl">Total llamadas</div><div class="val">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${m.uniqueBrands} marcas</div></div>
+        <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAns}% del total</div></div>
+        <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAns}% del total</div></div>
+      </div>
+    </div>
+    <div class="kpi-group">
+      <div class="kpi-group-lbl">💡 Interés (de los que atendieron)</div>
+      <div class="kpi-row">
+        <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${m.interested}</div><div class="sub">${pctInt}% de los que atendieron</div></div>
+        <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${m.noInt}</div><div class="sub">${pctNoInt}% de los que atendieron</div></div>
+        <div class="kpi c-amber"><div class="lbl">Interés → reunión</div><div class="val">${(m.rMeetInt*100).toFixed(0)}%</div><div class="sub">${m.meetings} reunión${m.meetings!==1?'es':''} de ${m.interested} interesados</div></div>
+      </div>
+    </div>
+    <div class="kpi-group">
+      <div class="kpi-group-lbl">✅ Conversión y marcas</div>
+      <div class="kpi-row">
+        <div class="kpi c-amber"><div class="lbl">Llamada → reunión</div><div class="val">${(m.rMeet*100).toFixed(1)}%</div><div class="sub">1 reunión c/ ${m.rMeet>0?Math.round(1/m.rMeet):'-'} llamadas</div></div>
+        <div class="kpi c-purple"><div class="lbl">Marcas únicas</div><div class="val">${m.uniqueBrands}</div><div class="sub">${m.brandsWithMeeting} con reunión agendada</div></div>
+        <div class="kpi c-green"><div class="lbl">Marcas cerradas</div><div class="val">${m.closed}</div><div class="sub">Meta: ${g} · ${m.meetings>0?(m.rClose*100).toFixed(0)+'% conv.':'sin cierres aún'}</div></div>
+        <div class="kpi c-purple"><div class="lbl">Pipeline activo</div><div class="val">${m.meetings+m.warm}</div><div class="sub">${m.meetings} reuniones + ${m.warm} en proceso</div></div>
+      </div>
+    </div>`;
 
   // Team progress
   document.getElementById('teamProgressFill').style.width=(pct*100)+'%';
@@ -792,6 +832,122 @@ function renderGlobalCharts(m, subset) {
       scales:{x:{grid:{display:false},ticks:{color:'#64748b',font:{size:11}}},
               y:{beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{color:'#64748b',font:{size:11}}}}}
   });
+
+  // ── Brands chart ────────────────────────────────────────────────────────
+  renderBrandsSection(subset);
+}
+
+function renderBrandsSection(subset) {
+  // Aggregate per brand
+  const brandMap = {};
+  (subset||calls).forEach(c=>{
+    if(!c.marca) return;
+    if(!brandMap[c.marca]) brandMap[c.marca]={marca:c.marca,total:0,atendio:0,reunion:0,cerrado:0,interes:0,hunters:new Set(),resultados:{}};
+    const b=brandMap[c.marca];
+    b.total++;
+    if(c.atendio==='Sí') b.atendio++;
+    if(c.resultado==='Reunión agendada') b.reunion++;
+    if(c.resReunion==='Cerrado') b.cerrado++;
+    if(c.resultado==='Reunión agendada'||c.resultado==='Volver a llamar') b.interes++;
+    b.hunters.add(c.hunter);
+    b.resultados[c.resultado]=(b.resultados[c.resultado]||0)+1;
+  });
+
+  // Sort by: con reunión first, then por interés, then total llamadas
+  const brands = Object.values(brandMap).sort((a,b)=>{
+    if(b.cerrado!==a.cerrado) return b.cerrado-a.cerrado;
+    if(b.reunion!==a.reunion) return b.reunion-a.reunion;
+    if(b.interes!==a.interes) return b.interes-a.interes;
+    return b.total-a.total;
+  });
+
+  if(!brands.length) return;
+
+  // Chart — horizontal bar con colores por resultado
+  const resColorMap = {'Reunión agendada':'#16a34a','Volver a llamar':'#d97706','No interesado':'#dc2626','No atendió':'#94a3b8','Buzón de voz':'#64748b','Dejó mensaje':'#3b82f6'};
+  const resultadoKeys = ['Reunión agendada','Volver a llamar','No interesado','No atendió','Buzón de voz','Dejó mensaje'];
+  const presentKeys = resultadoKeys.filter(k=>brands.some(b=>b.resultados[k]));
+
+  destroyChart('brandsChart');
+  const bCanvas = document.getElementById('brandsChart');
+  if(bCanvas) {
+    // Adjust height based on brand count
+    const chartH = Math.max(180, brands.length*30+60);
+    bCanvas.parentElement.style.height = chartH+'px';
+    charts.brands = new Chart(bCanvas, {
+      type:'bar',
+      data:{
+        labels: brands.map(b=>b.marca),
+        datasets: presentKeys.map(k=>({
+          label:k,
+          data:brands.map(b=>b.resultados[k]||0),
+          backgroundColor:resColorMap[k]||'#94a3b8',
+          borderRadius:3,
+          stack:'calls'
+        }))
+      },
+      options:{
+        indexAxis:'y',
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:10}},
+          tooltip:{callbacks:{
+            afterBody: ctx=>{
+              const b=brands[ctx[0].dataIndex];
+              return [`Atendieron: ${b.atendio}/${b.total}`,`Con interés: ${b.interes}`];
+            }
+          }}
+        },
+        scales:{
+          x:{stacked:true,beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{color:'#64748b',font:{size:11},stepSize:1}},
+          y:{stacked:true,grid:{display:false},ticks:{color:'#1e293b',font:{size:11,weight:'500'}}}
+        }
+      }
+    });
+  }
+
+  // Table
+  const tbEl = document.getElementById('brandsTable');
+  if(!tbEl) return;
+  const resultadoBadge = r => {
+    const map={'Reunión agendada':'badge-green','Volver a llamar':'badge-amber','No interesado':'badge-red','No atendió':'badge-gray','Buzón de voz':'badge-gray','Dejó mensaje':'badge-blue'};
+    return `<span class="badge ${map[r]||'badge-gray'}">${r}</span>`;
+  };
+  tbEl.innerHTML = `
+    <div class="table-wrap">
+      <table class="pipe-table">
+        <thead><tr>
+          <th>Marca</th>
+          <th style="text-align:center">Llamadas</th>
+          <th style="text-align:center">Atendieron</th>
+          <th style="text-align:center">Con interés</th>
+          <th style="text-align:center">Reunión</th>
+          <th style="text-align:center">Cerrada</th>
+          <th>Hunter(s)</th>
+          <th>Mejor resultado</th>
+        </tr></thead>
+        <tbody>${brands.map(b=>{
+          // Best result: hierarchy
+          const bestRes = ['Cerrado','En proceso','Reunión agendada','Volver a llamar','No interesado','No atendió','Dejó mensaje','Buzón de voz']
+            .find(r=>Object.keys(b.resultados).includes(r)||(r==='Cerrado'&&b.cerrado>0));
+          const actualBest = b.cerrado>0?'Cerrado': Object.keys(b.resultados).sort((a,c)=>{
+            const ord=['Reunión agendada','Volver a llamar','No interesado','No atendió','Dejó mensaje','Buzón de voz'];
+            return ord.indexOf(a)-ord.indexOf(c);
+          })[0];
+          const rowBg = b.cerrado>0?'background:#f0fdf4':b.reunion>0?'background:#fefce8':b.interes>0?'background:#f0fdfa':'';
+          return `<tr style="${rowBg}">
+            <td><strong>${b.marca}</strong></td>
+            <td style="text-align:center;font-weight:600">${b.total}</td>
+            <td style="text-align:center">${b.atendio} <span style="color:#94a3b8;font-size:11px">(${b.total?Math.round(b.atendio/b.total*100):0}%)</span></td>
+            <td style="text-align:center">${b.interes>0?'<span style="color:#0d9488;font-weight:600">'+b.interes+'</span>':'<span style="color:#94a3b8">0</span>'}</td>
+            <td style="text-align:center">${b.reunion>0?'<span style="color:#d97706;font-weight:700">✓ '+b.reunion+'</span>':'—'}</td>
+            <td style="text-align:center">${b.cerrado>0?'<span style="color:#16a34a;font-weight:700">✓</span>':'—'}</td>
+            <td style="font-size:12px;color:#64748b">${[...b.hunters].join(', ')}</td>
+            <td>${resultadoBadge(actualBest||'-')}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
 }
 
 // ─── PER-HUNTER VIEW ──────────────────────────────────────────────────────
@@ -816,17 +972,36 @@ function renderHunters() {
   const remaining = Math.max(g-m.closed,0);
   const callsNeed = m.rMeet>0&&m.rClose>0&&(d-daysEl)>0 ? Math.ceil(remaining/m.rClose/m.rMeet/(d-daysEl)) : 0;
 
-  const kpis = [
-    {lbl:'Llamadas',          val:m.total,          sub:`~${cpd.toFixed(1)}/día`,           cls:'c-blue'},
-    {lbl:'Tasa respuesta',    val:(m.rAns*100).toFixed(1)+'%', sub:`${m.attended} atendieron`, cls:'c-blue'},
-    {lbl:'Resp → reunión',    val:(m.rMeetAns*100).toFixed(1)+'%', sub:`${m.meetings} reuniones`, cls:'c-amber'},
-    {lbl:'Llamada → reunión', val:(m.rMeet*100).toFixed(1)+'%', sub:`1 c/ ${m.rMeet>0?Math.round(1/m.rMeet):'-'} llamadas`, cls:'c-amber'},
-    {lbl:'Marcas cerradas',   val:m.closed,          sub:`Meta: ${g.toFixed(0)}`,            cls:'c-green'},
-    {lbl:'Tasa cierre',       val:m.meetings>0?(m.rClose*100).toFixed(1)+'%':'—', sub:'Reunión → cierre', cls:'c-green'},
-    {lbl:'Pipeline activo',   val:m.meetings+m.warm, sub:`${m.meetings} reuniones + ${m.warm} en proc.`, cls:'c-purple'},
-    {lbl:'Seguimientos',      val:m.followUp,        sub:'Volver a llamar/viaje',             cls:'c-teal'},
-    {lbl:'No interesados',    val:m.noInt,           sub:(m.total?(m.noInt/m.total*100).toFixed(1):0)+'%', cls:'c-red'},
-  ];
+  const pctAnsH  = m.total    ? (m.rAns*100).toFixed(0)    : 0;
+  const pctNoAnsH= m.total    ? (100-m.rAns*100).toFixed(0): 0;
+  const pctIntH  = m.attended ? (m.rInterest*100).toFixed(0): 0;
+  const kpisHTML = `
+    <div class="kpi-group">
+      <div class="kpi-group-lbl">📞 Llamadas</div>
+      <div class="kpi-row">
+        <div class="kpi c-blue"><div class="lbl">Total</div><div class="val">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${m.uniqueBrands} marcas</div></div>
+        <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAnsH}% del total</div></div>
+        <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAnsH}% del total</div></div>
+      </div>
+    </div>
+    <div class="kpi-group">
+      <div class="kpi-group-lbl">💡 Interés y conversión</div>
+      <div class="kpi-row">
+        <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${m.interested}</div><div class="sub">${pctIntH}% de los que atendieron</div></div>
+        <div class="kpi c-amber"><div class="lbl">Interés → reunión</div><div class="val">${(m.rMeetInt*100).toFixed(0)}%</div><div class="sub">${m.meetings} reunión${m.meetings!==1?'es':''} de ${m.interested} interesados</div></div>
+        <div class="kpi c-amber"><div class="lbl">Llamada → reunión</div><div class="val">${(m.rMeet*100).toFixed(1)}%</div><div class="sub">1 c/ ${m.rMeet>0?Math.round(1/m.rMeet):'-'} llamadas</div></div>
+        <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${m.noInt}</div><div class="sub">${m.attended?(m.noInt/m.attended*100).toFixed(0):0}% de los que atendieron</div></div>
+      </div>
+    </div>
+    <div class="kpi-group">
+      <div class="kpi-group-lbl">✅ Pipeline</div>
+      <div class="kpi-row">
+        <div class="kpi c-green"><div class="lbl">Marcas cerradas</div><div class="val">${m.closed}</div><div class="sub">Meta: ${g.toFixed(0)}</div></div>
+        <div class="kpi c-purple"><div class="lbl">Marcas únicas</div><div class="val">${m.uniqueBrands}</div><div class="sub">${m.brandsWithMeeting} con reunión</div></div>
+        <div class="kpi c-purple"><div class="lbl">Pipeline activo</div><div class="val">${m.meetings+m.warm}</div><div class="sub">${m.meetings} reuniones + ${m.warm} en proc.</div></div>
+        <div class="kpi c-teal"><div class="lbl">Seguimientos</div><div class="val">${m.followUp}</div><div class="sub">A volver a llamar</div></div>
+      </div>
+    </div>`;
 
   document.getElementById('hunterDetail').innerHTML = `
     <div class="prog-wrap">
@@ -847,7 +1022,7 @@ function renderHunters() {
         .map(p=>`<div class="proj-item"><div class="pv" style="color:${color}">${p.pv}</div><div class="pl">${p.pl}</div></div>`).join('')}
     </div>
 
-    <div class="kpi-grid">${kpis.map(k=>`<div class="kpi ${k.cls}"><div class="lbl">${k.lbl}</div><div class="val">${k.val}</div><div class="sub">${k.sub}</div></div>`).join('')}</div>
+    ${kpisHTML}
 
     <div class="chart-grid">
       <div class="chart-card"><h3>Funnel personal</h3>

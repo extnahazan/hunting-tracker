@@ -71,11 +71,10 @@ body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:#EBEBEB;color:#1
 .kpi.c-yellow{border-top-color:var(--yellow)}.kpi.c-yellow .val{color:#9A7800}
 
 /* ── KPI GROUPS ── */
-.kpi-group{margin-bottom:16px}
-.kpi-group-lbl{font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;padding-left:2px;display:flex;align-items:center;gap:6px}
-.kpi-group-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
-.kpi-row{display:flex;gap:10px;flex-wrap:wrap}
-.kpi-row .kpi{flex:1;min-width:130px}
+.kpi-group{margin-bottom:0}
+.kpi-group-lbl{display:none}
+.kpi-row{display:flex;gap:10px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.kpi-row .kpi{flex:0 0 auto;min-width:120px;max-width:170px}
 
 /* ── SECTION HEADERS ── */
 .sec{font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.7px;margin:24px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:8px}
@@ -202,15 +201,11 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
     </div>
   </div>
   <div class="header-right">
-    <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:5px 10px">
-      <span style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600">Vista:</span>
-      <select id="viewAsSelect" onchange="setViewAs(this.value)" style="background:transparent;border:none;color:#fff;font-size:12px;font-weight:600;cursor:pointer;outline:none">
-        <option value="global" style="color:#1e293b">🌐 Equipo</option>
-      </select>
-    </div>
+    <select id="viewAsSelect" onchange="setViewAs(this.value)" class="hbtn" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#fff;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;padding-right:20px;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22 viewBox=%220 0 10 6%22><path d=%22M0 0l5 6 5-6z%22 fill=%22rgba(255,255,255,.5)%22/></svg>');background-repeat:no-repeat;background-position:right 7px center">
+      <option value="global" style="color:#1e293b">🌐 Equipo</option>
+    </select>
     <button class="hbtn hbtn-blue" onclick="syncFromSheet(true)">↻ Sincronizar</button>
-    <button class="hbtn" onclick="window.open('https://docs.google.com/spreadsheets/d/1GrTMoE-Fy_cPa8Vh7Wr833Me1Z9CDgkM8PbEyxHQJjk/edit','_blank')">📊 Sheet</button>
-    <button class="hbtn hbtn-yellow" onclick="openModal()">+ Nueva llamada</button>
+    <button class="hbtn hbtn-yellow" onclick="window.open('https://docs.google.com/spreadsheets/d/1GrTMoE-Fy_cPa8Vh7Wr833Me1Z9CDgkM8PbEyxHQJjk/edit','_blank')">📊 Abrir Sheet</button>
   </div>
 </div>
 <div id="syncBar" class="sync-bar sync-gray">⏳ Conectando con Google Sheet...</div>
@@ -649,31 +644,18 @@ function renderDashboard() {
   const pctInt  = m.attended  ? (m.rInterest*100).toFixed(0): 0;
   const pctNoInt= m.attended  ? (100-m.rInterest*100).toFixed(0): 0;
   document.getElementById('globalKpis').innerHTML = `
-    <div class="kpi-group">
-      <div class="kpi-group-lbl">📞 Llamadas — ${config.period}</div>
-      <div class="kpi-row">
-        <div class="kpi c-blue"><div class="lbl">Total del mes</div><div class="val" style="font-size:32px">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${daysEl} día${daysEl!==1?'s':''} con llamadas</div></div>
-        <div class="kpi c-purple"><div class="lbl">Meta del mes ${isPersonal?'(personal)':'(equipo)'}</div><div class="val">${myCallGoal}</div><div class="sub">${config.callTarget}/día × ${config.days} días hábiles${isPersonal?'':' · '+indCallGoal+'/hunter'}</div></div>
-        <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAns}% del total</div></div>
-        <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAns}% del total</div></div>
-      </div>
-    </div>
-    <div class="kpi-group">
-      <div class="kpi-group-lbl">💡 Interés (de los que atendieron)</div>
-      <div class="kpi-row">
-        <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${m.interested}</div><div class="sub">${pctInt}% de los que atendieron</div></div>
-        <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${m.noInt}</div><div class="sub">${pctNoInt}% de los que atendieron</div></div>
-        <div class="kpi c-amber"><div class="lbl">Interés → reunión</div><div class="val">${(m.rMeetInt*100).toFixed(0)}%</div><div class="sub">${m.meetings} reunión${m.meetings!==1?'es':''} de ${m.interested} interesados</div></div>
-      </div>
-    </div>
-    <div class="kpi-group">
-      <div class="kpi-group-lbl">✅ Conversión y marcas</div>
-      <div class="kpi-row">
-        <div class="kpi c-amber"><div class="lbl">Llamada → reunión</div><div class="val">${(m.rMeet*100).toFixed(1)}%</div><div class="sub">1 reunión c/ ${m.rMeet>0?Math.round(1/m.rMeet):'-'} llamadas</div></div>
-        <div class="kpi c-purple"><div class="lbl">Marcas únicas</div><div class="val">${m.uniqueBrands}</div><div class="sub">${m.brandsWithMeeting} con reunión agendada</div></div>
-        <div class="kpi c-green"><div class="lbl">Marcas cerradas</div><div class="val">${m.closed}</div><div class="sub">Meta: ${g} · ${m.meetings>0?(m.rClose*100).toFixed(0)+'% conv.':'sin cierres aún'}</div></div>
-        <div class="kpi c-purple"><div class="lbl">Pipeline activo</div><div class="val">${m.meetings+m.warm}</div><div class="sub">${m.meetings} reuniones + ${m.warm} en proceso</div></div>
-      </div>
+    <div class="kpi-row">
+      <div class="kpi c-blue"><div class="lbl">Total del mes</div><div class="val" style="font-size:32px">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${daysEl}d</div></div>
+      <div class="kpi c-purple"><div class="lbl">Meta ${isPersonal?'personal':'equipo'}</div><div class="val">${myCallGoal}</div><div class="sub">${config.callTarget}/día × ${config.days}d${isPersonal?'':' · '+indCallGoal+'/h'}</div></div>
+      <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAns}% del total</div></div>
+      <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAns}% del total</div></div>
+      <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${m.interested}</div><div class="sub">${pctInt}% de atendidos</div></div>
+      <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${m.noInt}</div><div class="sub">${pctNoInt}% de atendidos</div></div>
+      <div class="kpi c-amber"><div class="lbl">Interés → reunión</div><div class="val">${(m.rMeetInt*100).toFixed(0)}%</div><div class="sub">${m.meetings} de ${m.interested} interesados</div></div>
+      <div class="kpi c-amber"><div class="lbl">Llamada → reunión</div><div class="val">${(m.rMeet*100).toFixed(1)}%</div><div class="sub">1 reunión c/ ${m.rMeet>0?Math.round(1/m.rMeet):'-'} llamadas</div></div>
+      <div class="kpi c-purple"><div class="lbl">Marcas únicas</div><div class="val">${m.uniqueBrands}</div><div class="sub">${m.brandsWithMeeting} con reunión</div></div>
+      <div class="kpi c-green"><div class="lbl">Marcas cerradas</div><div class="val">${m.closed}</div><div class="sub">Meta: ${g} · ${m.meetings>0?(m.rClose*100).toFixed(0)+'% conv.':'sin cierres'}</div></div>
+      <div class="kpi c-purple"><div class="lbl">Pipeline activo</div><div class="val">${m.meetings+m.warm}</div><div class="sub">${m.meetings} reuniones + ${m.warm} proceso</div></div>
     </div>`;
 
   // Calls progress bar
@@ -1053,32 +1035,18 @@ function renderHunters() {
   const hIsAhead      = m.total >= hExpected;
 
   const kpisHTML = `
-    <div class="kpi-group">
-      <div class="kpi-group-lbl">📞 Llamadas — ${config.period}</div>
-      <div class="kpi-row">
-        <div class="kpi c-blue"><div class="lbl">Total del mes</div><div class="val" style="font-size:32px">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${m.uniqueBrands} marcas</div></div>
-        <div class="kpi c-purple"><div class="lbl">Meta del mes</div><div class="val">${hCallGoal}</div><div class="sub">${config.callTarget}/día × ${config.days} días ÷ ${config.hunters.length} hunters</div></div>
-        <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAnsH}% del total</div></div>
-        <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAnsH}% del total</div></div>
-      </div>
-    </div>
-    <div class="kpi-group">
-      <div class="kpi-group-lbl">💡 Interés y conversión</div>
-      <div class="kpi-row">
-        <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${m.interested}</div><div class="sub">${pctIntH}% de los que atendieron</div></div>
-        <div class="kpi c-amber"><div class="lbl">Interés → reunión</div><div class="val">${(m.rMeetInt*100).toFixed(0)}%</div><div class="sub">${m.meetings} reunión${m.meetings!==1?'es':''} de ${m.interested} interesados</div></div>
-        <div class="kpi c-amber"><div class="lbl">Llamada → reunión</div><div class="val">${(m.rMeet*100).toFixed(1)}%</div><div class="sub">1 c/ ${m.rMeet>0?Math.round(1/m.rMeet):'-'} llamadas</div></div>
-        <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${m.noInt}</div><div class="sub">${m.attended?(m.noInt/m.attended*100).toFixed(0):0}% de los que atendieron</div></div>
-      </div>
-    </div>
-    <div class="kpi-group">
-      <div class="kpi-group-lbl">✅ Pipeline</div>
-      <div class="kpi-row">
-        <div class="kpi c-green"><div class="lbl">Marcas cerradas</div><div class="val">${m.closed}</div><div class="sub">Meta: ${g.toFixed(0)}</div></div>
-        <div class="kpi c-purple"><div class="lbl">Marcas únicas</div><div class="val">${m.uniqueBrands}</div><div class="sub">${m.brandsWithMeeting} con reunión</div></div>
-        <div class="kpi c-purple"><div class="lbl">Pipeline activo</div><div class="val">${m.meetings+m.warm}</div><div class="sub">${m.meetings} reuniones + ${m.warm} en proc.</div></div>
-        <div class="kpi c-teal"><div class="lbl">Seguimientos</div><div class="val">${m.followUp}</div><div class="sub">A volver a llamar</div></div>
-      </div>
+    <div class="kpi-row">
+      <div class="kpi c-blue"><div class="lbl">Total del mes</div><div class="val" style="font-size:32px">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${m.uniqueBrands} marcas</div></div>
+      <div class="kpi c-purple"><div class="lbl">Meta del mes</div><div class="val">${hCallGoal}</div><div class="sub">${config.callTarget}/día × ${config.days}d ÷ ${config.hunters.length}h</div></div>
+      <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAnsH}% del total</div></div>
+      <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAnsH}% del total</div></div>
+      <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${m.interested}</div><div class="sub">${pctIntH}% de atendidos</div></div>
+      <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${m.noInt}</div><div class="sub">${m.attended?(m.noInt/m.attended*100).toFixed(0):0}% de atendidos</div></div>
+      <div class="kpi c-amber"><div class="lbl">Interés → reunión</div><div class="val">${(m.rMeetInt*100).toFixed(0)}%</div><div class="sub">${m.meetings} de ${m.interested} interesados</div></div>
+      <div class="kpi c-amber"><div class="lbl">Llamada → reunión</div><div class="val">${(m.rMeet*100).toFixed(1)}%</div><div class="sub">1 c/ ${m.rMeet>0?Math.round(1/m.rMeet):'-'} llamadas</div></div>
+      <div class="kpi c-green"><div class="lbl">Marcas cerradas</div><div class="val">${m.closed}</div><div class="sub">Meta: ${g.toFixed(0)}</div></div>
+      <div class="kpi c-purple"><div class="lbl">Marcas únicas</div><div class="val">${m.uniqueBrands}</div><div class="sub">${m.brandsWithMeeting} con reunión</div></div>
+      <div class="kpi c-teal"><div class="lbl">Seguimientos</div><div class="val">${m.followUp}</div><div class="sub">A volver a llamar</div></div>
     </div>`;
 
   document.getElementById('hunterDetail').innerHTML = `

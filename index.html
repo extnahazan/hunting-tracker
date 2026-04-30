@@ -54,6 +54,9 @@ body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:#EBEBEB;color:#1
 .subtab.active{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
 .subtab:hover:not(.active){border-color:#999;color:var(--dark)}
 
+/* ── KPI WRAPPER ── */
+.kpi-grid{display:block;margin-bottom:24px}
+
 /* ── KPI CARDS ── */
 .kpi{background:#fff;border-radius:12px;padding:20px 20px 18px;box-shadow:var(--shadow);border:none;border-top:4px solid transparent;transition:box-shadow .15s;display:flex;flex-direction:column;gap:4px}
 .kpi:hover{box-shadow:var(--shadow-md)}
@@ -89,10 +92,10 @@ body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:#EBEBEB;color:#1
 @media(max-width:760px){.chart-grid,.chart-grid-3{grid-template-columns:1fr}}
 
 /* ── PROGRESS ── */
-.prog-wrap{background:#fff;border-radius:10px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}
-.prog-bar-bg{background:#E9E9E9;border-radius:20px;height:12px;overflow:hidden;margin:8px 0 4px}
+.prog-wrap{background:#fff;border-radius:12px;padding:20px 22px;margin-bottom:16px;box-shadow:var(--shadow)}
+.prog-bar-bg{background:#E9E9E9;border-radius:20px;height:14px;overflow:hidden;margin:10px 0 6px}
 .prog-bar-fill{height:100%;border-radius:20px;transition:width .6s cubic-bezier(.4,0,.2,1)}
-.prog-labels{display:flex;justify-content:space-between;font-size:11px;color:#999}
+.prog-labels{display:flex;justify-content:space-between;font-size:11px;color:#999;margin-top:2px}
 
 /* ── HUNTER ── */
 .hunter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:20px}
@@ -107,11 +110,11 @@ body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:#EBEBEB;color:#1
 .hstat .hl{font-size:10px;color:#999;font-weight:600;text-transform:uppercase}
 
 /* ── PROJECTION BOX ── */
-.proj-box{background:linear-gradient(135deg,#EBF2FE 0%,#F0E9FF 100%);border:1px solid #D0E4FC;border-radius:12px;padding:16px;margin-bottom:16px;display:flex;gap:0;flex-wrap:wrap}
-.proj-item{flex:1;min-width:110px;text-align:center;padding:10px 14px}
+.proj-box{background:linear-gradient(135deg,#EBF2FE 0%,#F0E9FF 100%);border:1px solid #D0E4FC;border-radius:12px;padding:6px 0;margin-bottom:24px;display:flex;gap:0;flex-wrap:wrap}
+.proj-item{flex:1;min-width:120px;text-align:center;padding:16px 18px}
 .proj-item:not(:last-child){border-right:1px solid rgba(52,131,250,.15)}
 .pv{font-size:26px;font-weight:800;color:var(--blue);letter-spacing:-1px}
-.pl{font-size:10px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+.pl{font-size:10px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-top:5px}
 
 /* ── TABLES ── */
 .pipe-table{width:100%;border-collapse:collapse;font-size:13px}
@@ -678,20 +681,20 @@ function renderDashboard() {
   // Calls progress bar
   const cpEl = document.getElementById('callsProgressWrap');
   if(cpEl) cpEl.innerHTML = `
-    <div class="prog-wrap" style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <strong style="font-size:13px">📞 Llamadas del mes — ${isPersonal?viewAs:'Equipo'}</strong>
-        <span style="font-size:13px;font-weight:700;color:${isAhead?'#16a34a':'#dc2626'}">${m.total} / ${myCallGoal} (${(callPct*100).toFixed(0)}%) ${isAhead?'▲ adelante':'▼ abajo'}</span>
+    <div class="prog-wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+        <strong style="font-size:13px;color:var(--dark)">📞 Llamadas del mes — ${isPersonal?viewAs:'Equipo'}</strong>
+        <span style="font-size:13px;font-weight:700;color:${isAhead?'var(--green)':'var(--red)'}">${m.total} / ${myCallGoal} (${(callPct*100).toFixed(0)}%) ${isAhead?'▲ adelante':'▼ abajo'}</span>
       </div>
-      <div style="position:relative;height:18px;background:#e2e8f0;border-radius:20px;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;height:100%;width:${(callPct*100).toFixed(1)}%;background:linear-gradient(90deg,#2563eb,${isAhead?'#16a34a':'#d97706'});border-radius:20px;transition:width .5s"></div>
-        <div style="position:absolute;top:0;left:${Math.min(expectedSoFar/myCallGoal*100,99).toFixed(1)}%;height:100%;width:3px;background:#dc2626;opacity:.85" title="Trayectoria esperada: ${expectedSoFar}"></div>
+      <div style="position:relative;height:16px;background:#E9E9E9;border-radius:20px;overflow:hidden;margin:10px 0 6px">
+        <div style="position:absolute;top:0;left:0;height:100%;width:${(callPct*100).toFixed(1)}%;background:linear-gradient(90deg,var(--blue),${isAhead?'var(--green)':'var(--amber)'});border-radius:20px;transition:width .5s cubic-bezier(.4,0,.2,1)"></div>
+        <div style="position:absolute;top:0;left:${Math.min(expectedSoFar/myCallGoal*100,99).toFixed(1)}%;height:100%;width:2px;background:var(--red);opacity:.7" title="Trayectoria esperada: ${expectedSoFar}"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-top:4px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#999">
         <span>${config.period}</span>
-        <span style="display:flex;align-items:center;gap:10px">
-          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;background:#dc2626;display:inline-block;border-radius:2px"></span>Deberías ir en <strong>${expectedSoFar}</strong></span>
-          <span>Faltan <strong>${callsLeft}</strong> llamadas</span>
+        <span style="display:flex;align-items:center;gap:14px">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:2px;background:var(--red);display:inline-block;border-radius:2px"></span>Deberías ir en <strong style="color:var(--dark)">${expectedSoFar}</strong></span>
+          <span>Faltan <strong style="color:var(--dark)">${callsLeft}</strong> llamadas</span>
         </span>
       </div>
     </div>`;

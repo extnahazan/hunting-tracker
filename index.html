@@ -196,6 +196,8 @@ textarea:focus{border-color:var(--blue)}
   <div class="sec" id="dashTitle">Resumen del equipo — <span id="dashPeriod"></span></div>
   <div class="kpi-grid" id="globalKpis"></div>
 
+  <div id="callsProgressWrap"></div>
+
   <div class="prog-wrap">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <strong style="font-size:13px">Progreso del equipo hacia la meta mensual</strong>
@@ -595,6 +597,17 @@ function renderDashboard() {
     : `Resumen del equipo — <span id="dashPeriod">${config.period}</span>`;
   if(document.getElementById('dashPeriod')) document.getElementById('dashPeriod').textContent = config.period;
 
+  // Calls goal calculation
+  const totalCallGoal = config.callTarget * config.days;                     // equipo
+  const indCallGoal   = Math.round(totalCallGoal / config.hunters.length);   // individual
+  const myCallGoal    = isPersonal ? indCallGoal : totalCallGoal;
+  const callPct       = myCallGoal > 0 ? Math.min(m.total / myCallGoal, 1) : 0;
+  const callsLeft     = Math.max(myCallGoal - m.total, 0);
+  // Expected so far: days elapsed × daily target (individual or team)
+  const dailyTarget   = isPersonal ? config.callTarget / config.hunters.length * config.hunters.length : config.callTarget;
+  const expectedSoFar = Math.round(daysEl * config.callTarget * (isPersonal ? 1/config.hunters.length : 1));
+  const isAhead       = m.total >= expectedSoFar;
+
   // Global KPIs — agrupados por categoría
   const pctAns  = m.total     ? (m.rAns*100).toFixed(0)     : 0;
   const pctNoAns= m.total     ? (100-m.rAns*100).toFixed(0) : 0;
@@ -605,6 +618,7 @@ function renderDashboard() {
       <div class="kpi-group-lbl">📞 Llamadas — ${config.period}</div>
       <div class="kpi-row">
         <div class="kpi c-blue" style="border-width:4px;border-left-width:6px"><div class="lbl">Total del mes</div><div class="val" style="font-size:32px">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${daysEl} día${daysEl!==1?'s':''} con llamadas</div></div>
+        <div class="kpi c-blue" style="border-left-width:6px;border-color:#7c3aed"><div class="lbl">Meta del mes ${isPersonal?'(personal)':'(equipo)'}</div><div class="val" style="color:#7c3aed">${myCallGoal}</div><div class="sub">${config.callTarget}/día × ${config.days} días hábiles${isPersonal?'':' · '+indCallGoal+'/hunter'}</div></div>
         <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAns}% del total</div></div>
         <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAns}% del total</div></div>
       </div>
@@ -624,6 +638,27 @@ function renderDashboard() {
         <div class="kpi c-purple"><div class="lbl">Marcas únicas</div><div class="val">${m.uniqueBrands}</div><div class="sub">${m.brandsWithMeeting} con reunión agendada</div></div>
         <div class="kpi c-green"><div class="lbl">Marcas cerradas</div><div class="val">${m.closed}</div><div class="sub">Meta: ${g} · ${m.meetings>0?(m.rClose*100).toFixed(0)+'% conv.':'sin cierres aún'}</div></div>
         <div class="kpi c-purple"><div class="lbl">Pipeline activo</div><div class="val">${m.meetings+m.warm}</div><div class="sub">${m.meetings} reuniones + ${m.warm} en proceso</div></div>
+      </div>
+    </div>`;
+
+  // Calls progress bar
+  const cpEl = document.getElementById('callsProgressWrap');
+  if(cpEl) cpEl.innerHTML = `
+    <div class="prog-wrap" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <strong style="font-size:13px">📞 Llamadas del mes — ${isPersonal?viewAs:'Equipo'}</strong>
+        <span style="font-size:13px;font-weight:700;color:${isAhead?'#16a34a':'#dc2626'}">${m.total} / ${myCallGoal} (${(callPct*100).toFixed(0)}%) ${isAhead?'▲ adelante':'▼ abajo'}</span>
+      </div>
+      <div style="position:relative;height:18px;background:#e2e8f0;border-radius:20px;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;height:100%;width:${(callPct*100).toFixed(1)}%;background:linear-gradient(90deg,#2563eb,${isAhead?'#16a34a':'#d97706'});border-radius:20px;transition:width .5s"></div>
+        <div style="position:absolute;top:0;left:${Math.min(expectedSoFar/myCallGoal*100,99).toFixed(1)}%;height:100%;width:3px;background:#dc2626;opacity:.85" title="Trayectoria esperada: ${expectedSoFar}"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-top:4px">
+        <span>${config.period}</span>
+        <span style="display:flex;align-items:center;gap:10px">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;background:#dc2626;display:inline-block;border-radius:2px"></span>Deberías ir en <strong>${expectedSoFar}</strong></span>
+          <span>Faltan <strong>${callsLeft}</strong> llamadas</span>
+        </span>
       </div>
     </div>`;
 
@@ -972,14 +1007,22 @@ function renderHunters() {
   const remaining = Math.max(g-m.closed,0);
   const callsNeed = m.rMeet>0&&m.rClose>0&&(d-daysEl)>0 ? Math.ceil(remaining/m.rClose/m.rMeet/(d-daysEl)) : 0;
 
-  const pctAnsH  = m.total    ? (m.rAns*100).toFixed(0)    : 0;
-  const pctNoAnsH= m.total    ? (100-m.rAns*100).toFixed(0): 0;
-  const pctIntH  = m.attended ? (m.rInterest*100).toFixed(0): 0;
+  const pctAnsH   = m.total    ? (m.rAns*100).toFixed(0)    : 0;
+  const pctNoAnsH = m.total    ? (100-m.rAns*100).toFixed(0): 0;
+  const pctIntH   = m.attended ? (m.rInterest*100).toFixed(0): 0;
+  // Hunter call goal
+  const hCallGoal     = Math.round(config.callTarget * config.days / config.hunters.length);
+  const hCallPct      = hCallGoal > 0 ? Math.min(m.total / hCallGoal, 1) : 0;
+  const hCallsLeft    = Math.max(hCallGoal - m.total, 0);
+  const hExpected     = Math.round(daysEl * config.callTarget / config.hunters.length);
+  const hIsAhead      = m.total >= hExpected;
+
   const kpisHTML = `
     <div class="kpi-group">
       <div class="kpi-group-lbl">📞 Llamadas — ${config.period}</div>
       <div class="kpi-row">
         <div class="kpi c-blue" style="border-left-width:6px"><div class="lbl">Total del mes</div><div class="val" style="font-size:32px">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${m.uniqueBrands} marcas</div></div>
+        <div class="kpi" style="border-left:6px solid ${color};flex:1;min-width:130px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;border-left-width:6px;border-left-color:${color}"><div class="lbl">Meta del mes</div><div class="val" style="color:${color}">${hCallGoal}</div><div class="sub">${config.callTarget}/día × ${config.days} días ÷ ${config.hunters.length} hunters</div></div>
         <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAnsH}% del total</div></div>
         <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAnsH}% del total</div></div>
       </div>
@@ -1024,13 +1067,34 @@ function renderHunters() {
 
     ${kpisHTML}
 
+    <div class="prog-wrap" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <strong style="font-size:13px">📞 Progreso de llamadas del mes</strong>
+        <span style="font-size:13px;font-weight:700;color:${hIsAhead?'#16a34a':'#dc2626'}">${m.total} / ${hCallGoal} (${(hCallPct*100).toFixed(0)}%) ${hIsAhead?'▲ adelante':'▼ abajo'}</span>
+      </div>
+      <div style="position:relative;height:18px;background:#e2e8f0;border-radius:20px;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;height:100%;width:${(hCallPct*100).toFixed(1)}%;background:linear-gradient(90deg,${color},${hIsAhead?'#16a34a':'#d97706'});border-radius:20px;transition:width .5s"></div>
+        <div style="position:absolute;top:0;left:${Math.min(hExpected/hCallGoal*100,99).toFixed(1)}%;height:100%;width:3px;background:#dc2626;opacity:.85"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-top:4px">
+        <span>${config.period}</span>
+        <span style="display:flex;align-items:center;gap:10px">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;background:#dc2626;display:inline-block;border-radius:2px"></span>Deberías ir en <strong>${hExpected}</strong></span>
+          <span>Faltan <strong>${hCallsLeft}</strong> llamadas</span>
+        </span>
+      </div>
+    </div>
+
     <div class="chart-grid">
+      <div class="chart-card"><h3>Llamadas acumuladas vs trayectoria esperada</h3>
+        <div style="position:relative;height:180px"><canvas id="hCumulChart_${hunter}" role="img" aria-label="Acumulado vs esperado ${hunter}"></canvas></div>
+      </div>
       <div class="chart-card"><h3>Funnel personal</h3>
-        <div style="position:relative;height:200px"><canvas id="hFunnelChart_${hunter}" role="img" aria-label="Funnel ${hunter}"></canvas></div>
+        <div style="position:relative;height:180px"><canvas id="hFunnelChart_${hunter}" role="img" aria-label="Funnel ${hunter}"></canvas></div>
       </div>
-      <div class="chart-card"><h3>Llamadas por día</h3>
-        <div style="position:relative;height:200px"><canvas id="hDailyChart_${hunter}" role="img" aria-label="Llamadas por día ${hunter}"></canvas></div>
-      </div>
+    </div>
+    <div class="chart-card" style="margin-bottom:14px"><h3>Llamadas por día</h3>
+      <div style="position:relative;height:180px"><canvas id="hDailyChart_${hunter}" role="img" aria-label="Llamadas por día ${hunter}"></canvas></div>
     </div>`;
 
   // Render hunter-specific charts
@@ -1048,16 +1112,55 @@ function renderHunters() {
     });
     const bdh={};
     hCalls.forEach(c=>{bdh[c.fecha]=(bdh[c.fecha]||0)+1;});
-    const hDays=Object.keys(bdh).sort();
-    new Chart(document.getElementById(`hDailyChart_${hunter}`),{
-      type:'bar',
-      data:{labels:hDays.map(d=>d.slice(5)),
-        datasets:[{data:hDays.map(d=>bdh[d]),backgroundColor:color,borderRadius:6,borderSkipped:false,label:'Llamadas'}]},
-      options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false}},
-        scales:{x:{grid:{display:false},ticks:{color:'#64748b',font:{size:11}}},
-                y:{beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{color:'#64748b',font:{size:11},stepSize:1}}}}
-    });
+    // Build working days from first call to today
+    const allHDates = Object.keys(bdh).sort();
+    const hDailyTarget = config.callTarget / config.hunters.length;
+    if(allHDates.length) {
+      const hStart = new Date(allHDates[0]+'T12:00:00');
+      const hToday = new Date(); hToday.setHours(12,0,0,0);
+      const hWorkDays = [];
+      for(let dd=new Date(hStart);dd<=hToday;dd.setDate(dd.getDate()+1)){
+        const dow=dd.getDay(); if(dow>=1&&dow<=5) hWorkDays.push(dd.toISOString().slice(0,10));
+      }
+      // Daily chart
+      const isThH = d=>new Date(d+'T12:00:00').getDay()===4;
+      new Chart(document.getElementById(`hDailyChart_${hunter}`),{
+        type:'bar',
+        data:{labels:hWorkDays.map(d=>(isThH(d)?'📍 ':'')+(new Date(d+'T12:00:00').getDate())+'/'+(new Date(d+'T12:00:00').getMonth()+1)),
+          datasets:[
+            {type:'bar',label:'Llamadas',data:hWorkDays.map(d=>isThH(d)?null:(bdh[d]||0)),backgroundColor:color,borderRadius:4,borderSkipped:false},
+            {type:'line',label:'Objetivo/día',data:hWorkDays.map(d=>isThH(d)?null:hDailyTarget),borderColor:'#dc2626',borderDash:[5,4],borderWidth:2,pointRadius:0,fill:false}
+          ]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}},
+          scales:{x:{grid:{display:false},ticks:{color:'#64748b',font:{size:11}}},
+                  y:{beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{color:'#64748b',font:{size:11},stepSize:1}}}}
+      });
+      // Cumulative chart (my actual vs expected pace)
+      let cumA=0, cumE=0;
+      const cA=[], cE=[], cLbls=[];
+      hWorkDays.forEach(d=>{
+        if(isThH(d)){ cLbls.push((new Date(d+'T12:00:00').getDate())+'/'+(new Date(d+'T12:00:00').getMonth()+1)+' 📍'); }
+        else{ cumA+=(bdh[d]||0); cumE+=hDailyTarget; cLbls.push((new Date(d+'T12:00:00').getDate())+'/'+(new Date(d+'T12:00:00').getMonth()+1)); }
+        cA.push(+cumA.toFixed(1)); cE.push(+cumE.toFixed(1));
+      });
+      new Chart(document.getElementById(`hCumulChart_${hunter}`),{
+        type:'line',
+        data:{labels:cLbls,
+          datasets:[
+            {label:'Mis llamadas acumuladas',data:cA,borderColor:color,backgroundColor:hexToAlpha(color,0.08),fill:true,tension:.3,pointRadius:3,pointBackgroundColor:color},
+            {label:'Trayectoria esperada',data:cE,borderColor:'#dc2626',borderDash:[5,4],fill:false,tension:0,pointRadius:0}
+          ]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}},
+          scales:{x:{grid:{display:false},ticks:{color:'#64748b',font:{size:10},maxRotation:45}},
+                  y:{beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{color:'#64748b',font:{size:11}},
+                     suggestedMax:Math.max(...cE, ...cA)+2}}}
+      });
+    } else {
+      // no calls yet — placeholder
+      new Chart(document.getElementById(`hDailyChart_${hunter}`),{type:'bar',data:{labels:[],datasets:[]},options:{responsive:true,maintainAspectRatio:false}});
+    }
   },50);
 }
 

@@ -181,6 +181,32 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
 .empty{text-align:center;padding:48px;color:#999}
 .empty svg,.empty .empty-icon{font-size:32px;display:block;margin:0 auto 10px;opacity:.4}
 
+/* ── LISTA DEL DÍA ── */
+.daily-wrap{background:#fff;border-radius:14px;padding:20px 22px;box-shadow:var(--shadow);margin-bottom:16px}
+.daily-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.daily-title{font-size:15px;font-weight:800;color:var(--dark);display:flex;align-items:center;gap:8px}
+.daily-date{font-size:11px;color:#999;font-weight:500}
+.daily-count{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--blue-l);color:var(--blue)}
+.daily-section-lbl{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.8px;margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+.daily-section-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
+.daily-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;background:#F7F8FA;margin-bottom:6px;transition:background .15s;cursor:default}
+.daily-item:hover{background:#EEF0F4}
+.daily-item.p1{border-left:3px solid var(--amber)}
+.daily-item.p2{border-left:3px solid var(--blue)}
+.daily-item.reassign{border-left:3px solid var(--red);opacity:.75}
+.daily-item-brand{font-weight:700;font-size:13px;color:var(--dark);min-width:110px}
+.daily-item-contact{font-size:12px;color:#666;flex:1;display:flex;align-items:center;gap:6px}
+.daily-item-phone{font-size:12px;color:var(--blue);font-weight:600;display:flex;align-items:center;gap:4px}
+.daily-item-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.tag-followup{background:#FFF0E6;color:#CC5500}
+.tag-noanswer{background:#F0F0F0;color:#666}
+.tag-reassign{background:#FEECEE;color:var(--red)}
+.daily-item-btn{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:var(--blue);color:#fff;white-space:nowrap;transition:all .15s;margin-left:auto}
+.daily-item-btn:hover{background:var(--blue-d)}
+.daily-import-box{border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;margin-top:16px;background:#FAFAFA}
+.daily-import-box p{font-size:12px;color:#999;margin-bottom:8px}
+.daily-brands-count{font-size:11px;color:var(--green);font-weight:600;margin-top:4px}
+
 /* ── SYNC BAR ── */
 .sync-bar{font-size:11px;font-weight:600;padding:5px 24px;min-height:24px;transition:all .3s;letter-spacing:.1px}
 .sync-green{background:#E6F7EE;color:#007A3D}
@@ -1043,6 +1069,203 @@ function renderBrandsSection(subset) {
     </div>`;
 }
 
+// ─── BRANDS DATABASE ──────────────────────────────────────────────────────
+let brandsDB = JSON.parse(localStorage.getItem('hunting_brands_db') || '[]');
+
+function saveBrandsDB() { localStorage.setItem('hunting_brands_db', JSON.stringify(brandsDB)); }
+
+function importBrandsCSV(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) { alert('El archivo está vacío o no tiene filas.'); return; }
+    const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase()
+      .replace('marca','marca').replace('teléfono','telefono').replace('telefono','telefono')
+      .replace('contacto','contacto').replace('cargo','cargo')
+      .replace('hunter','hunter').replace('asignado','hunter')
+      .replace('dirección','direccion').replace('direccion','direccion')
+      .replace('notas','notas').replace('nota','notas'));
+    brandsDB = lines.slice(1).map(l => {
+      const cells = parseCSVLine(l);
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = (cells[i] || '').trim(); });
+      return obj;
+    }).filter(r => r.marca);
+    saveBrandsDB();
+    renderHunters();
+    alert(`✅ Base de marcas cargada: ${brandsDB.length} marcas importadas.`);
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function generateDailyList(hunter, maxItems = 20) {
+  const today      = new Date().toISOString().slice(0, 10);
+  const monthStart = today.slice(0, 7) + '-01';
+  const twoWeeksAgo = new Date(Date.now() - 14*24*60*60*1000).toISOString().slice(0, 10);
+
+  // Last call per brand (for this hunter's full history)
+  const lastCall = {};
+  calls.filter(c => c.hunter === hunter).forEach(c => {
+    if (!lastCall[c.marca] || c.fecha > lastCall[c.marca].fecha) lastCall[c.marca] = c;
+  });
+
+  // Brands called this month (any result)
+  const calledThisMonth = new Set(
+    calls.filter(c => c.hunter === hunter && c.fecha >= monthStart).map(c => c.marca)
+  );
+
+  // P1 — Seguimientos: last result = "Volver a llamar", not yet retried this month
+  const p1 = Object.values(lastCall)
+    .filter(c => c.resultado === 'Volver a llamar' && !calledThisMonth.has(c.marca))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+  // P2a — From brands DB: assigned to hunter, not called this month, not in p1
+  const p1Brands = new Set(p1.map(c => c.marca));
+  const dbBrands = brandsDB.filter(b => {
+    const bh = (b.hunter || '').toLowerCase().trim();
+    return bh === hunter.toLowerCase() && !calledThisMonth.has(b.marca) && !p1Brands.has(b.marca);
+  });
+
+  // P2b — From calls history: no answer last time, not called this month, not in p1
+  const p2Calls = Object.values(lastCall)
+    .filter(c => (c.resultado === 'No atendió' || c.resultado === 'Buzón de voz')
+                 && !calledThisMonth.has(c.marca) && !p1Brands.has(c.marca)
+                 && c.fecha < monthStart)
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+  // Reassign candidates: other hunters' brands, no activity > 14 days
+  const reassign = brandsDB.filter(b => {
+    const bh = (b.hunter || '').toLowerCase().trim();
+    const lc = lastCall[b.marca];
+    const lastActivity = lc ? lc.fecha : null;
+    return bh !== hunter.toLowerCase()
+      && (!lastActivity || lastActivity < twoWeeksAgo)
+      && !calledThisMonth.has(b.marca);
+  }).slice(0, 3);
+
+  // Build final list up to maxItems
+  const list = [];
+  const addItem = (brand, phone, contact, cargo, tag, tagClass, date, originalHunter) => {
+    if (list.length < maxItems) list.push({ brand, phone, contact, cargo, tag, tagClass, date, originalHunter });
+  };
+
+  p1.forEach(c => {
+    const db = brandsDB.find(b => b.marca === c.marca);
+    addItem(c.marca, db?.telefono||'', c.contacto||db?.contacto||'', c.cargo||db?.cargo||'',
+            '🔥 Seguimiento', 'tag-followup', c.fecha, null);
+  });
+
+  dbBrands.forEach(b => {
+    const lc = lastCall[b.marca];
+    addItem(b.marca, b.telefono||'', b.contacto||'', b.cargo||'',
+            lc ? '↩ Sin llamar este mes' : '🆕 Nueva', 'tag-noanswer', lc?.fecha||'', null);
+  });
+
+  p2Calls.forEach(c => {
+    if (list.find(x => x.brand === c.marca)) return;
+    addItem(c.marca, '', c.contacto||'', c.cargo||'', '↩ Sin respuesta', 'tag-noanswer', c.fecha, null);
+  });
+
+  if (list.length < maxItems) {
+    reassign.forEach(b => {
+      if (list.find(x => x.brand === b.marca)) return;
+      addItem(b.marca, b.telefono||'', b.contacto||'', b.cargo||'',
+              '⚠ Reasignar?', 'tag-reassign', '', b.hunter);
+    });
+  }
+
+  return list;
+}
+
+function renderDailyListHTML(hunter, color) {
+  const list = generateDailyList(hunter, 20);
+  const today = new Date().toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'long'});
+  const todayStr = today.charAt(0).toUpperCase() + today.slice(1);
+
+  const p1Items  = list.filter(x => x.tagClass === 'tag-followup');
+  const p2Items  = list.filter(x => x.tagClass === 'tag-noanswer');
+  const p3Items  = list.filter(x => x.tagClass === 'tag-reassign');
+
+  const itemHTML = (item, cls) => `
+    <div class="daily-item ${cls}">
+      <div class="daily-item-brand">${item.brand}</div>
+      <div class="daily-item-contact">
+        ${item.contact ? `<span>👤 ${item.contact}${item.cargo ? ' · '+item.cargo : ''}</span>` : '<span style="color:#bbb">Sin contacto</span>'}
+      </div>
+      ${item.phone
+        ? `<div class="daily-item-phone">📞 <a href="tel:${item.phone}" style="color:var(--blue);text-decoration:none">${item.phone}</a></div>`
+        : `<div class="daily-item-phone" style="color:#ccc">Sin tel.</div>`}
+      <span class="daily-item-tag ${item.tagClass}">${item.tag}</span>
+      ${item.date ? `<span style="font-size:10px;color:#aaa;margin-left:2px">${item.date.slice(5).replace('-','/')}</span>` : ''}
+      <button class="daily-item-btn" onclick="quickCallFromList('${item.brand}','${hunter}')">+ Registrar</button>
+    </div>`;
+
+  const noDBMsg = brandsDB.filter(b=>(b.hunter||'').toLowerCase()===hunter.toLowerCase()).length === 0
+    ? `<div class="daily-import-box">
+        <p>📂 Cargá la base de marcas para completar la lista con todas las marcas asignadas a <strong>${hunter}</strong></p>
+        <label class="btn btn-primary btn-sm" style="cursor:pointer;display:inline-block">
+          📥 Importar Excel / CSV
+          <input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importBrandsCSV(this.files[0])">
+        </label>
+        <div class="daily-brands-count">${brandsDB.length > 0 ? brandsDB.length+' marcas ya cargadas en total' : ''}</div>
+      </div>`
+    : `<div style="display:flex;justify-content:flex-end;margin-top:12px">
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px">
+          🔄 Actualizar base
+          <input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importBrandsCSV(this.files[0])">
+        </label>
+      </div>`;
+
+  return `
+    <div class="daily-wrap">
+      <div class="daily-header">
+        <div class="daily-title">📋 Lista del día
+          <span class="daily-date">${todayStr}</span>
+        </div>
+        <span class="daily-count" style="background:${color}20;color:${color}">${list.length} marcas</span>
+      </div>
+
+      ${p1Items.length ? `
+        <div class="daily-section-lbl">🔥 Seguimientos — con interés previo</div>
+        ${p1Items.map(i => itemHTML(i, 'p1')).join('')}
+      ` : ''}
+
+      ${p2Items.length ? `
+        <div class="daily-section-lbl">📞 Para llamar este mes</div>
+        ${p2Items.map(i => itemHTML(i, 'p2')).join('')}
+      ` : ''}
+
+      ${p3Items.length ? `
+        <div class="daily-section-lbl">⚠ Disponibles para reasignar (+14 días sin actividad)</div>
+        ${p3Items.map(i => itemHTML(i, 'reassign')).join('')}
+      ` : ''}
+
+      ${list.length === 0 ? `<div class="empty"><div class="empty-icon">🎉</div><p>¡Todo al día! No hay marcas pendientes para hoy.</p></div>` : ''}
+
+      ${noDBMsg}
+    </div>`;
+}
+
+function quickCallFromList(marca, hunter) {
+  // Pre-fill modal with brand
+  openModal();
+  setTimeout(() => {
+    const fMarca = document.getElementById('fMarca');
+    const fHunter = document.getElementById('fHunter');
+    if (fMarca) fMarca.value = marca;
+    if (fHunter) { fHunter.value = hunter; }
+    // Pre-fill contact if in DB
+    const db = brandsDB.find(b => b.marca === marca);
+    if (db) {
+      const fContacto = document.getElementById('fContacto');
+      const fCargo    = document.getElementById('fCargo');
+      if (fContacto && db.contacto) fContacto.value = db.contacto;
+      if (fCargo && db.cargo)       fCargo.value    = db.cargo;
+    }
+  }, 50);
+}
+
 // ─── PER-HUNTER VIEW ──────────────────────────────────────────────────────
 function renderHunters() {
   // Build subtabs
@@ -1108,6 +1331,8 @@ function renderHunters() {
     </div>`;
 
   document.getElementById('hunterDetail').innerHTML = `
+    ${renderDailyListHTML(hunter, color)}
+
     <div class="prog-wrap">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
         <div class="avatar" style="background:${hexToAlpha(color,0.15)};color:${color}">${initials}</div>

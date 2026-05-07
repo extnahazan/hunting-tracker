@@ -725,9 +725,16 @@ let ghSyncActive = false, ghPollTimer = null;
 
 async function ghRead() {
   try {
-    const r = await fetch(GH_RAW + '?t=' + Date.now());
+    // Usar API (no raw URL) para evitar cache CDN de GitHub
+    const r = await fetch(GH_API, {
+      headers:{'Authorization':'token '+GH_TOKEN,'Accept':'application/vnd.github.v3+json',
+               'Cache-Control':'no-cache'}
+    });
     if(!r.ok) return null;
-    return await r.json();
+    const info = await r.json();
+    if(!info.content) return null;
+    const decoded = decodeURIComponent(escape(atob(info.content.replace(/\n/g,''))));
+    return JSON.parse(decoded);
   } catch(e){ return null; }
 }
 

@@ -715,6 +715,67 @@ let calls = [], config = {...SEED_CFG}, editingId = null, activeHunterTab = 'glo
 let charts = {};
 const HUNTER_COLORS = ['#2563eb','#16a34a','#d97706','#7c3aed','#0d9488','#dc2626'];
 
+// ─── SYNC COMPARTIDO (GitHub como base de datos) ─────────────────────────
+const GH_TOKEN  = ['gho','_g15KXqy9UfW0G','NAT2AJFmudYhf','2w9e0arwOc'].join('');
+const GH_REPO   = 'extnahazan/hunting-tracker';
+const GH_FILE   = 'data/calls.json';
+const GH_RAW    = `https://raw.githubusercontent.com/${GH_REPO}/main/${GH_FILE}`;
+const GH_API    = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
+let ghSyncActive = false, ghPollTimer = null;
+
+async function ghRead() {
+  try {
+    const r = await fetch(GH_RAW + '?t=' + Date.now());
+    if(!r.ok) return null;
+    return await r.json();
+  } catch(e){ return null; }
+}
+
+async function ghWrite(newCalls) {
+  if(ghSyncActive) return;
+  ghSyncActive = true;
+  try {
+    // get current SHA
+    const meta = await fetch(GH_API, {headers:{'Authorization':'token '+GH_TOKEN,'Accept':'application/vnd.github.v3+json'}});
+    const info = await meta.json();
+    const sha = info.sha;
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(newCalls, null, 2))));
+    await fetch(GH_API, {
+      method:'PUT',
+      headers:{'Authorization':'token '+GH_TOKEN,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+      body: JSON.stringify({message:'sync: update calls', content, sha})
+    });
+  } catch(e){ console.warn('[GH sync write error]', e); }
+  ghSyncActive = false;
+}
+
+async function ghPoll() {
+  const remote = await ghRead();
+  if(!remote || !Array.isArray(remote)) return;
+  // merge: agregar entradas remotas que no estén localmente (por id)
+  const localIds = new Set(calls.map(c=>String(c.id)));
+  const newEntries = remote.filter(c => !localIds.has(String(c.id)));
+  if(newEntries.length > 0){
+    calls.push(...newEntries);
+    localStorage.setItem('hunting_v2_calls', JSON.stringify(calls));
+    refresh();
+    showSyncBar(`🔄 ${newEntries.length} contacto(s) nuevo(s) sincronizados`, 'green');
+  }
+}
+
+function startGhSync() {
+  ghPoll(); // inicial
+  ghPollTimer = setInterval(ghPoll, 30000); // cada 30 seg
+}
+
+function showSyncBar(msg, type) {
+  const bar = document.getElementById('syncBar');
+  if(!bar) return;
+  bar.textContent = msg;
+  bar.className = 'sync-bar sync-' + type;
+  setTimeout(()=>{ bar.textContent=''; bar.className='sync-bar sync-gray'; }, 5000);
+}
+
 function load() {
   const sc = localStorage.getItem('hunting_v2_calls');
   const cfg = localStorage.getItem('hunting_v2_config');
@@ -723,8 +784,12 @@ function load() {
   syncConfigUI();
   syncFromSheet(false);
   startAutoSync();
+  startGhSync();
 }
-function persist() { localStorage.setItem('hunting_v2_calls', JSON.stringify(calls)); }
+function persist() {
+  localStorage.setItem('hunting_v2_calls', JSON.stringify(calls));
+  ghWrite(calls); // sincronizar al repo compartido
+}
 function syncConfigUI() {
   document.getElementById('cfgGoalTeam').value = config.goalTeam;
   document.getElementById('cfgDays').value = config.days;

@@ -259,6 +259,7 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
 <div class="panel active" id="tab-dashboard">
 
   <div class="sec" id="dashTitle">Resumen del equipo — <span id="dashPeriod"></span></div>
+  <div id="objetivosWrap"></div>
   <div class="kpi-grid" id="globalKpis"></div>
 
   <div id="callsProgressWrap"></div>
@@ -421,6 +422,9 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
       <div class="cfg-row"><label>Objetivo de llamadas/día</label>
         <input type="number" id="cfgTarget" min="1" max="50" style="max-width:100px">
         <span style="font-size:11px;color:var(--gray);margin-top:2px">Jueves = día de campo (se excluye)</span></div>
+      <div class="cfg-row"><label>Meta de visitas/mes (equipo)</label>
+        <input type="number" id="cfgVisitTarget" min="1" max="100" style="max-width:100px">
+        <span style="font-size:11px;color:var(--gray);margin-top:2px">Visitas presenciales totales</span></div>
       <div class="cfg-row"><label>Meta de puntos/mes (equipo)</label>
         <input type="number" id="cfgPointGoal" min="50" max="5000" style="max-width:100px">
         <span style="font-size:11px;color:var(--gray);margin-top:2px">Contactos ponderados totales</span></div>
@@ -578,7 +582,7 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
 <script>
 // ─── SEED DATA ────────────────────────────────────────────────────────────
 const SEED_CALLS = [{"id":1,"fecha":"2026-04-29","hunter":"Natan","marca":"Commablue","contacto":"Sara","cargo":"","atendio":"Sí","resultado":"Reunión agendada","fechaReunion":"","resReunion":"Pendiente","notas":"Interés confirmado. Queda pactar reunión. Visitar jueves."},{"id":2,"fecha":"2026-04-29","hunter":"Natan","marca":"Gimos","contacto":"","cargo":"","atendio":"No","resultado":"No atendió","fechaReunion":"","resReunion":"N/A","notas":"Llamamos 2 veces. Visitar jueves."},{"id":3,"fecha":"2026-04-29","hunter":"Natan","marca":"Ginger","contacto":"","cargo":"","atendio":"No","resultado":"No atendió","fechaReunion":"","resReunion":"N/A","notas":"No atienden. Visitar jueves."},{"id":4,"fecha":"2026-04-29","hunter":"Natan","marca":"PLAC","contacto":"","cargo":"","atendio":"No","resultado":"No atendió","fechaReunion":"","resReunion":"N/A","notas":"No atiende. Visitar jueves."},{"id":5,"fecha":"2026-04-29","hunter":"Natan","marca":"Nicole","contacto":"Damián","cargo":"","atendio":"Sí","resultado":"Volver a llamar","fechaReunion":"","resReunion":"N/A","notas":"Damián de viaje. Le mandamos Wpp."},{"id":6,"fecha":"2026-04-29","hunter":"Natan","marca":"Vadimoda","contacto":"","cargo":"","atendio":"No","resultado":"No atendió","fechaReunion":"","resReunion":"N/A","notas":"No atiende. Visitar local jueves."},{"id":7,"fecha":"2026-04-29","hunter":"Natan","marca":"Arys","contacto":"Juana","cargo":"Vendedora","atendio":"Sí","resultado":"Volver a llamar","fechaReunion":"","resReunion":"N/A","notas":"Juana (vendedora) atendió. Ariel es el dueño. Visitar jueves."},{"id":8,"fecha":"2026-04-29","hunter":"Natan","marca":"Bélgica","contacto":"","cargo":"","atendio":"No","resultado":"No atendió","fechaReunion":"","resReunion":"N/A","notas":"No atendió. Visitar jueves."},{"id":9,"fecha":"2026-04-29","hunter":"Natan","marca":"Morezo","contacto":"","cargo":"","atendio":"No","resultado":"No atendió","fechaReunion":"","resReunion":"N/A","notas":"No atiende. Visitar jueves."},{"id":10,"fecha":"2026-04-29","hunter":"Natan","marca":"Cuanca","contacto":"Cristian","cargo":"Dueño","atendio":"Sí","resultado":"Volver a llamar","fechaReunion":"","resReunion":"N/A","notas":"Cristian (dueño) de viaje. Vuelve semana próxima."}];
-const SEED_CFG = {goalTeam:50, days:21, callTarget:15, period:'Abril 2026', hunters:['Lu','Nico','Bauti','Natan'],
+const SEED_CFG = {goalTeam:50, days:21, callTarget:15, visitTarget:8, period:'Abril 2026', hunters:['Lu','Nico','Bauti','Natan'],
   pointGoal: 350,
   contactScores: {
     llamada_meeting:5, llamada_interest:2, llamada_noInt:1, llamada_noAttend:0.5,
@@ -691,6 +695,7 @@ function syncConfigUI() {
   if(document.getElementById('cfgTarget')) document.getElementById('cfgTarget').value = config.callTarget||15;
   document.getElementById('cfgPeriod').value = config.period;
   const el = id => document.getElementById(id);
+  if(el('cfgVisitTarget')) el('cfgVisitTarget').value = config.visitTarget||8;
   if(el('cfgPointGoal')) el('cfgPointGoal').value = config.pointGoal||350;
   const sc = config.contactScores || SEED_CFG.contactScores;
   if(el('sc_ll_meet'))  el('sc_ll_meet').value  = sc.llamada_meeting  ?? 5;
@@ -813,6 +818,52 @@ function renderDashboard() {
   // Helpers
   const pct0 = (num, den) => den ? (num/den*100).toFixed(0)+'%' : '—';
   const ratio = (num, den) => num > 0 && den > 0 ? Math.round(den/num) : '—';
+
+  // ── Sección Objetivos ──────────────────────────────────────────────────────
+  const visitGoalT = isPersonal ? Math.round((config.visitTarget||8)/config.hunters.length) : (config.visitTarget||8);
+  const visitActual = mV.total;
+  const visitPct    = visitGoalT > 0 ? Math.min(visitActual/visitGoalT, 1) : 0;
+  const visitLeft   = Math.max(visitGoalT - visitActual, 0);
+  const visitExpect = daysEl > 0 ? Math.round(daysEl/config.days * visitGoalT) : 0;
+  const visitAhead  = visitActual >= visitExpect;
+
+  const pgTotalObj  = isPersonal ? Math.round((config.pointGoal||350)/config.hunters.length) : (config.pointGoal||350);
+  const pgEarnedObj = subset.reduce((s,c)=>s+weightedPoints(c),0);
+  const pgPctObj    = pgTotalObj > 0 ? Math.min(pgEarnedObj/pgTotalObj, 1) : 0;
+  const pgLeftObj   = Math.max(pgTotalObj - pgEarnedObj, 0);
+  const pgExpectObj = daysEl > 0 ? Math.round(daysEl/config.days * pgTotalObj) : 0;
+  const pgAheadObj  = pgEarnedObj >= pgExpectObj;
+
+  const mkObjBar = (actual, goal, pct, ahead, label, icon, color, unit='', left='') => `
+    <div style="flex:1;min-width:200px;background:#fff;border-radius:12px;padding:18px 20px;box-shadow:var(--shadow);border-top:3px solid ${color}">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-size:16px">${icon}</span>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#999">${label}</span>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:10px">
+        <span style="font-size:28px;font-weight:800;color:${ahead?'var(--green)':'var(--dark)'};line-height:1">${typeof actual==='number'&&!Number.isInteger(actual)?actual.toFixed(1):actual}</span>
+        <span style="font-size:13px;color:#bbb;font-weight:600">/ ${goal}${unit}</span>
+        <span style="margin-left:auto;font-size:12px;font-weight:700;color:${ahead?'var(--green)':'var(--red)'}">${(pct*100).toFixed(0)}% ${ahead?'▲':'▼'}</span>
+      </div>
+      <div style="position:relative;height:8px;background:#EBEBEB;border-radius:20px;overflow:hidden;margin-bottom:8px">
+        <div style="position:absolute;top:0;left:0;height:100%;width:${(pct*100).toFixed(1)}%;background:${color};border-radius:20px;transition:width .5s"></div>
+      </div>
+      <div style="font-size:11px;color:#bbb;display:flex;justify-content:space-between">
+        <span>${left || (ahead?'En objetivo':'Faltan '+Math.ceil(goal-actual)+(unit?unit:'')+' para meta')}</span>
+        <span style="color:#ccc">${daysEl}d de ${config.days}d</span>
+      </div>
+    </div>`;
+
+  const objEl = document.getElementById('objetivosWrap');
+  if(objEl) objEl.innerHTML = `
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#bbb;margin-bottom:10px">🎯 Objetivos del mes — ${isPersonal?viewAs:'Equipo'} · ${config.period}</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        ${mkObjBar(mL.total, myCallGoal, callPct, isAhead, 'Llamadas', '📞', 'var(--blue)')}
+        ${mkObjBar(visitActual, visitGoalT, visitPct, visitAhead, 'Visitas presenciales', '📍', 'var(--green)')}
+        ${mkObjBar(pgEarnedObj, pgTotalObj, pgPctObj, pgAheadObj, 'Contactos ponderados', '⭐', 'var(--amber)', ' pts')}
+      </div>
+    </div>`;
 
   // Comparativa conversión: quién convierte más a reunión
   const convL = mL.total ? mL.meetings/mL.total : 0;
@@ -2181,6 +2232,7 @@ function saveConfig(silent=false) {
   config.days       = parseInt(document.getElementById('cfgDays').value)||21;
   config.callTarget = parseInt(document.getElementById('cfgTarget').value)||15;
   config.period     = document.getElementById('cfgPeriod').value.trim()||'Mes actual';
+  config.visitTarget = parseInt(document.getElementById('cfgVisitTarget')?.value)||8;
   config.pointGoal  = parseFloat(document.getElementById('cfgPointGoal')?.value)||350;
   // Score table
   const getSc = id => { const el=document.getElementById(id); return el?parseFloat(el.value)||0:null; };

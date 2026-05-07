@@ -2653,7 +2653,7 @@ O: "Visita a Mandala, quiere venir al summit"'></textarea>
     const today = new Date();
 
     // --- Tipo de contacto ---
-    const isVisita = /visit[ao]|presencial|fui a|estuve en|pasé por|pase por/.test(t);
+    const isVisita = /visit[aoéeê]|visité|presencial|fui a|estuve en|pas[eé] por|me acerc/.test(t);
     const tipo = isVisita ? 'Visita presencial' : 'Llamada';
 
     // --- Resultado ---
@@ -2710,6 +2710,11 @@ O: "Visita a Mandala, quiere venir al summit"'></textarea>
         if(w.length>=4 && t.includes(w) && w.length>bestScore){ marca=b; bestScore=w.length; }
       });
     });
+    // Fallback: detectar "marca [nombre]", "la marca [nombre]", "con [nombre]" explícito
+    if(!marca){
+      const marcaExpl = text.match(/(?:(?:la\s+)?marca|tienda|local|negocio|con)\s+([A-Za-záéíóúüÁÉÍÓÚÜñÑ][A-Za-záéíóúüÁÉÍÓÚÜñÑ\s]{1,25}?)(?:\s+(?:dijo|dice|me\s|que|y\b|,|\.)|$)/i);
+      if(marcaExpl) marca = marcaExpl[1].trim().replace(/\s+/g,' ');
+    }
 
     // --- Notas: extraer objeciones u otras frases ---
     let notas = '';

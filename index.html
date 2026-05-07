@@ -201,6 +201,7 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
 .tag-followup{background:#FFF0E6;color:#CC5500}
 .tag-noanswer{background:#F0F0F0;color:#666}
 .tag-reassign{background:#FEECEE;color:var(--red)}
+.tag-pipeline{background:#EBF2FE;color:#2968C8}
 .daily-item-btn{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:var(--blue);color:#fff;white-space:nowrap;transition:all .15s;margin-left:auto}
 .daily-item-btn:hover{background:var(--blue-d)}
 .daily-import-box{border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;margin-top:16px;background:#FAFAFA}
@@ -312,6 +313,40 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
     </div>
   </div>
 
+  <div class="sec">⏰ Optimización de tiempos</div>
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Mejor horario para llamar — tasa de atención por hora</h3>
+      <div style="position:relative;height:200px"><canvas id="hourChart" role="img" aria-label="Tasa de atención por hora del día"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Motivos de rechazo — "No interesado"</h3>
+      <div style="position:relative;height:200px"><canvas id="rechazoChart" role="img" aria-label="Motivos de rechazo"></canvas></div>
+    </div>
+  </div>
+
+  <div class="sec">🔍 ¿Por qué no estoy convirtiendo?</div>
+  <div class="chart-grid" style="margin-bottom:12px">
+    <div class="chart-card">
+      <h3>Tasa de reunión por rubro — ¿dónde convierte más?</h3>
+      <div style="position:relative;height:220px"><canvas id="rubroConvChart" role="img" aria-label="Tasa de conversión por rubro"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Tasa de atención por cargo — ¿a quién vale la pena llamar?</h3>
+      <div style="position:relative;height:220px"><canvas id="cargoAnsChart" role="img" aria-label="Tasa de atención por cargo del contacto"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-grid" style="margin-bottom:16px">
+    <div class="chart-card">
+      <h3>Volumen vs conversión por rubro — esfuerzo vs resultado</h3>
+      <div style="position:relative;height:200px"><canvas id="rubroVolumeChart" role="img" aria-label="Volumen de llamadas vs tasa de reunión por rubro"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Dónde se cae el embudo — por cargo del contacto</h3>
+      <div style="position:relative;height:200px"><canvas id="cargoFunnelChart" role="img" aria-label="Embudo de conversión por cargo"></canvas></div>
+    </div>
+  </div>
+
   <div class="sec">🏷️ Marcas llamadas</div>
   <div class="chart-grid" style="margin-bottom:16px">
     <div class="chart-card" style="grid-column:1/-1">
@@ -361,8 +396,8 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
     <div style="overflow-x:auto">
       <table>
         <thead><tr>
-          <th>Fecha</th><th id="thHunter">Hunter</th><th>Marca</th>
-          <th>Estado</th><th>F. Reunión</th><th>Notas</th><th></th>
+          <th>Fecha</th><th>Hora</th><th id="thHunter">Hunter</th><th>Marca</th>
+          <th>Estado</th><th>Motivo rechazo</th><th>F. Reunión</th><th>Notas</th><th></th>
         </tr></thead>
         <tbody id="tableBody"></tbody>
       </table>
@@ -472,6 +507,12 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
     <h2 id="modalTitle">Nueva llamada</h2>
     <div class="form-grid">
       <div class="form-group"><label>Fecha *</label><input type="date" id="fFecha"></div>
+      <div class="form-group"><label>Hora</label><input type="time" id="fHora"></div>
+      <div class="form-group"><label>Tipo de contacto</label>
+        <select id="fTipo">
+          <option value="Llamada">📞 Llamada</option>
+          <option value="Visita presencial">📍 Visita presencial</option>
+        </select></div>
       <div class="form-group"><label>Hunter *</label><select id="fHunter"></select></div>
       <div class="form-group full"><label>Marca / Empresa *</label><input type="text" id="fMarca" placeholder="Nombre de la marca"></div>
       <div class="form-group"><label>Contacto</label><input type="text" id="fContacto" placeholder="Nombre"></div>
@@ -479,10 +520,23 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
       <div class="form-group"><label>¿Atendió?</label>
         <select id="fAtendio"><option value="No">No</option><option value="Sí">Sí</option></select></div>
       <div class="form-group"><label>Resultado</label>
-        <select id="fResultado">
+        <select id="fResultado" onchange="toggleRechazo(this.value)">
           <option>No atendió</option><option>Buzón de voz</option><option>Dejó mensaje</option>
           <option>Volver a llamar</option><option>No interesado</option><option>Reunión agendada</option>
         </select></div>
+      <div class="form-group full" id="fMotRechazoWrap" style="display:none">
+        <label>Motivo de rechazo</label>
+        <select id="fMotRechazo">
+          <option value="">— Seleccioná —</option>
+          <option>Precio alto</option>
+          <option>Ya tienen solución / competidor</option>
+          <option>No es el momento</option>
+          <option>No toma decisiones / no es el dueño</option>
+          <option>No le interesa el canal online</option>
+          <option>No quiso escuchar</option>
+          <option>Otro</option>
+        </select>
+      </div>
       <div class="form-group"><label>Fecha reunión</label><input type="date" id="fFechaReunion"></div>
       <div class="form-group"><label>Resultado reunión</label>
         <select id="fResReunion">
@@ -619,7 +673,6 @@ function metricsFor(subset) {
   const closed     = subset.filter(c=>c.resReunion==='Cerrado').length;
   const warm       = subset.filter(c=>c.resReunion==='En proceso').length;
   const noInt      = subset.filter(c=>c.resultado==='No interesado').length;
-  // "Con interés" = atendieron Y mostraron señal positiva (reunión o volver a llamar)
   const interested = subset.filter(c=>c.resultado==='Reunión agendada'||c.resultado==='Volver a llamar').length;
   const followUp   = subset.filter(c=>c.resultado==='Volver a llamar'||c.notas.toLowerCase().includes('viaje')).length;
   const uniqueBrands      = new Set(subset.map(c=>c.marca).filter(Boolean)).size;
@@ -630,8 +683,18 @@ function metricsFor(subset) {
   const rClose    = meetings   ? closed/meetings     : 0;
   const rInterest = attended   ? interested/attended : 0;
   const rMeetInt  = interested ? meetings/interested : 0;
+
+  // ── Visitas presenciales ──
+  const visitas        = subset.filter(c=>c.tipo==='Visita presencial').length;
+  const llamadas       = total - visitas;
+  const visitaMeeting  = subset.filter(c=>c.tipo==='Visita presencial'&&c.resultado==='Reunión agendada').length;
+  const llamadaMeeting = subset.filter(c=>c.tipo!=='Visita presencial'&&c.resultado==='Reunión agendada').length;
+  const rVisitaMeet    = visitas  ? visitaMeeting/visitas   : 0;
+  const rLlamadaMeet   = llamadas ? llamadaMeeting/llamadas : 0;
+
   return {total,attended,noAttended,meetings,closed,warm,noInt,interested,followUp,
-          uniqueBrands,brandsWithMeeting,rAns,rMeet,rMeetAns,rClose,rInterest,rMeetInt};
+          uniqueBrands,brandsWithMeeting,rAns,rMeet,rMeetAns,rClose,rInterest,rMeetInt,
+          visitas,llamadas,visitaMeeting,llamadaMeeting,rVisitaMeet,rLlamadaMeet};
 }
 function uniqueDays(subset) { return new Set((subset||calls).map(c=>c.fecha)).size; }
 function hunterColor(name) {
@@ -678,52 +741,88 @@ function renderDashboard() {
     : `Resumen del equipo — <span id="dashPeriod">${config.period}</span>`;
   if(document.getElementById('dashPeriod')) document.getElementById('dashPeriod').textContent = config.period;
 
-  // Calls goal calculation
-  const totalCallGoal = config.callTarget * config.days;                     // equipo
-  const indCallGoal   = Math.round(totalCallGoal / config.hunters.length);   // individual
-  const myCallGoal    = isPersonal ? indCallGoal : totalCallGoal;
-  const callPct       = myCallGoal > 0 ? Math.min(m.total / myCallGoal, 1) : 0;
-  const callsLeft     = Math.max(myCallGoal - m.total, 0);
-  // Expected so far: days elapsed × daily target (individual or team)
-  const dailyTarget   = isPersonal ? config.callTarget / config.hunters.length * config.hunters.length : config.callTarget;
-  const expectedSoFar = Math.round(daysEl * config.callTarget * (isPersonal ? 1/config.hunters.length : 1));
-  const isAhead       = m.total >= expectedSoFar;
+  // Subsets por tipo de contacto
+  const subsetLlamadas = subset.filter(c => c.tipo !== 'Visita presencial');
+  const subsetVisitas  = subset.filter(c => c.tipo === 'Visita presencial');
+  const mL = metricsFor(subsetLlamadas);
+  const mV = metricsFor(subsetVisitas);
 
-  // Global KPIs — agrupados por categoría
-  const pctAns  = m.total     ? (m.rAns*100).toFixed(0)     : 0;
-  const pctNoAns= m.total     ? (100-m.rAns*100).toFixed(0) : 0;
-  const pctInt  = m.attended  ? (m.rInterest*100).toFixed(0): 0;
-  const pctNoInt= m.attended  ? (100-m.rInterest*100).toFixed(0): 0;
+  // Goals (solo llamadas cuentan para la meta de volumen)
+  const totalCallGoal = config.callTarget * config.days;
+  const indCallGoal   = Math.round(totalCallGoal / config.hunters.length);
+  const myCallGoal    = isPersonal ? indCallGoal : totalCallGoal;
+  const callPct       = myCallGoal > 0 ? Math.min(mL.total / myCallGoal, 1) : 0;
+  const callsLeft     = Math.max(myCallGoal - mL.total, 0);
+  const expectedSoFar = Math.round(daysEl * config.callTarget * (isPersonal ? 1/config.hunters.length : 1));
+  const isAhead       = mL.total >= expectedSoFar;
+
+  // Helpers
+  const pct0 = (num, den) => den ? (num/den*100).toFixed(0)+'%' : '—';
+  const ratio = (num, den) => num > 0 && den > 0 ? Math.round(den/num) : '—';
+
+  // Comparativa conversión: quién convierte más a reunión
+  const convL = mL.total ? mL.meetings/mL.total : 0;
+  const convV = mV.total ? mV.meetings/mV.total : 0;
+  const convWinner = mV.total === 0 ? '' : convV > convL ? '📍 Visita convierte más' : convL > convV ? '📞 Llamada convierte más' : '⚖ Igual conversión';
+  const convDiff = mV.total > 0 ? Math.abs(convV - convL) * 100 : 0;
+
   document.getElementById('globalKpis').innerHTML = `
     <div class="kpi-sections">
+
+      <!-- ── LLAMADAS ── -->
       <div class="kpi-group">
-        <div class="kpi-group-lbl">📞 Llamadas — ${config.period}</div>
+        <div class="kpi-group-lbl">📞 Llamadas telefónicas</div>
         <div class="kpi-row">
-          <div class="kpi c-blue"><div class="lbl">Total del mes</div><div class="val">${m.total}</div><div class="sub">~${cpd.toFixed(1)}/día · ${daysEl}d activos</div></div>
-          <div class="kpi c-purple"><div class="lbl">Meta ${isPersonal?'personal':'equipo'}</div><div class="val">${myCallGoal}</div><div class="sub">${config.callTarget}/día × ${config.days}d${isPersonal?'':' · '+indCallGoal+'/hunter'}</div></div>
-          <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAns}% del total</div></div>
-          <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAns}% del total</div></div>
+          <div class="kpi c-blue"><div class="lbl">Total del mes</div><div class="val">${mL.total}</div><div class="sub">Meta: ${myCallGoal} · ${daysEl}d activos</div></div>
+          <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${mL.attended}</div><div class="sub">${pct0(mL.attended,mL.total)} de las llamadas</div></div>
+          <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${mL.interested}</div><div class="sub">${pct0(mL.interested,mL.attended)} de los que atendieron</div></div>
+          <div class="kpi c-amber"><div class="lbl">Llamada → reunión</div><div class="val">${(convL*100).toFixed(1)}%</div><div class="sub">1 reunión cada ${mL.rMeet>0?Math.round(1/mL.rMeet):'—'} llamadas</div></div>
+          <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${mL.noInt}</div><div class="sub">${pct0(mL.noInt,mL.attended)} de los que atendieron</div></div>
+          <div class="kpi c-teal"><div class="lbl">Seguimientos</div><div class="val">${mL.followUp}</div><div class="sub">Marcas a volver a llamar</div></div>
         </div>
       </div>
-      <div class="kpi-group">
-        <div class="kpi-group-lbl">💡 Interés — de los que atendieron</div>
+
+      <!-- ── VISITAS PRESENCIALES ── -->
+      <div class="kpi-group" style="border-left:3px solid var(--blue-l)">
+        <div class="kpi-group-lbl">📍 Visitas presenciales <span style="font-size:9px;font-weight:400;color:#bbb">(miérc / jueves)</span></div>
+        ${mV.total === 0 ? `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 12px;color:#bbb;text-align:center;gap:8px">
+          <span style="font-size:28px">🗓</span>
+          <span style="font-size:12px">Sin visitas registradas aún.<br>Seleccioná <strong style="color:#888">📍 Visita presencial</strong><br>al registrar una ida a Flores.</span>
+        </div>` : `
         <div class="kpi-row">
-          <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${m.interested}</div><div class="sub">${pctInt}% de los que atendieron</div></div>
-          <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${m.noInt}</div><div class="sub">${pctNoInt}% de los que atendieron</div></div>
-          <div class="kpi c-amber"><div class="lbl">Interés → reunión</div><div class="val">${(m.rMeetInt*100).toFixed(0)}%</div><div class="sub">${m.meetings} reunión${m.meetings!==1?'es':''} de ${m.interested} interesados</div></div>
-          <div class="kpi c-teal"><div class="lbl">Seguimientos</div><div class="val">${m.followUp}</div><div class="sub">Marcas a volver a llamar</div></div>
-        </div>
+          <div class="kpi c-blue"><div class="lbl">Total visitas</div><div class="val">${mV.total}</div><div class="sub">1 cada ${ratio(mV.total,mL.total)} llamadas</div></div>
+          <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${mV.attended}</div><div class="sub">${pct0(mV.attended,mV.total)} de las visitas</div></div>
+          <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${mV.interested}</div><div class="sub">${pct0(mV.interested,mV.attended)} de los que atendieron</div></div>
+          <div class="kpi c-green"><div class="lbl">Visita → reunión</div><div class="val">${(convV*100).toFixed(1)}%</div><div class="sub">1 reunión cada ${mV.rMeet>0?Math.round(1/mV.rMeet):'—'} visitas</div></div>
+          <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${mV.noInt}</div><div class="sub">${pct0(mV.noInt,mV.attended)} de los que atendieron</div></div>
+          <div class="kpi c-teal"><div class="lbl">Seguimientos</div><div class="val">${mV.followUp}</div><div class="sub">Marcas a volver a visitar</div></div>
+        </div>`}
       </div>
+
+      <!-- ── CONVERSIÓN Y MARCAS ── -->
       <div class="kpi-group">
         <div class="kpi-group-lbl">✅ Conversión y marcas</div>
         <div class="kpi-row">
-          <div class="kpi c-amber"><div class="lbl">Llamada → reunión</div><div class="val">${(m.rMeet*100).toFixed(1)}%</div><div class="sub">1 reunión cada ${m.rMeet>0?Math.round(1/m.rMeet):'-'} llamadas</div></div>
-          <div class="kpi c-purple"><div class="lbl">Marcas únicas</div><div class="val">${m.uniqueBrands}</div><div class="sub">${m.brandsWithMeeting} marca${m.brandsWithMeeting!==1?'s':''} con reunión</div></div>
-          <div class="kpi c-green"><div class="lbl">Marcas cerradas</div><div class="val">${m.closed}</div><div class="sub">Meta: ${g} marcas · ${m.meetings>0?(m.rClose*100).toFixed(0)+'% conv.':'sin cierres aún'}</div></div>
+          <div class="kpi c-purple"><div class="lbl">Marcas únicas</div><div class="val">${m.uniqueBrands}</div><div class="sub">${m.brandsWithMeeting} con reunión agendada</div></div>
+          <div class="kpi c-green"><div class="lbl">Marcas cerradas</div><div class="val">${m.closed}</div><div class="sub">Meta: ${g} · ${m.meetings>0?(m.rClose*100).toFixed(0)+'% conv.':'sin cierres aún'}</div></div>
           <div class="kpi c-purple"><div class="lbl">Pipeline activo</div><div class="val">${m.meetings+m.warm}</div><div class="sub">${m.meetings} reuniones + ${m.warm} en proceso</div></div>
+          ${mV.total > 0 ? `
+          <div class="kpi ${convV>=convL?'c-green':'c-amber'}">
+            <div class="lbl">Visita vs Llamada</div>
+            <div class="val" style="font-size:16px;letter-spacing:-.5px">${convWinner.split(' ')[0]}</div>
+            <div class="sub">${convWinner.replace(/^.\s/,'')}<br>+${convDiff.toFixed(1)}pp diferencia</div>
+          </div>` : `
+          <div class="kpi c-gray">
+            <div class="lbl">Visita vs Llamada</div>
+            <div class="val" style="font-size:20px">—</div>
+            <div class="sub">Registrá visitas para ver la comparativa</div>
+          </div>`}
         </div>
       </div>
-    </div>`;
+
+    </div>
+    `;
 
   // Calls progress bar
   const cpEl = document.getElementById('callsProgressWrap');
@@ -731,7 +830,7 @@ function renderDashboard() {
     <div class="prog-wrap">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
         <strong style="font-size:13px;color:var(--dark)">📞 Llamadas del mes — ${isPersonal?viewAs:'Equipo'}</strong>
-        <span style="font-size:13px;font-weight:700;color:${isAhead?'var(--green)':'var(--red)'}">${m.total} / ${myCallGoal} (${(callPct*100).toFixed(0)}%) ${isAhead?'▲ adelante':'▼ abajo'}</span>
+        <span style="font-size:13px;font-weight:700;color:${isAhead?'var(--green)':'var(--red)'}">${mL.total} / ${myCallGoal} (${(callPct*100).toFixed(0)}%) ${isAhead?'▲ adelante':'▼ abajo'}${mV.total>0?` · 📍 ${mV.total} visitas`:''}</span>
       </div>
       <div style="position:relative;height:16px;background:#E9E9E9;border-radius:20px;overflow:hidden;margin:10px 0 6px">
         <div style="position:absolute;top:0;left:0;height:100%;width:${(callPct*100).toFixed(1)}%;background:linear-gradient(90deg,var(--blue),${isAhead?'var(--green)':'var(--amber)'});border-radius:20px;transition:width .5s cubic-bezier(.4,0,.2,1)"></div>
@@ -952,6 +1051,330 @@ function renderGlobalCharts(m, subset) {
               y:{beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{color:'#64748b',font:{size:11}}}}}
   });
 
+  // ── Mejor horario para llamar ───────────────────────────────────────────
+  destroyChart('hourChart');
+  const hourlyData = {};
+  const hourlyAttended = {};
+  subset.forEach(c => {
+    if (!c.hora) return;
+    const h = parseInt(c.hora.split(':')[0], 10);
+    if (isNaN(h)) return;
+    hourlyData[h] = (hourlyData[h] || 0) + 1;
+    if (c.atendio === 'Sí') hourlyAttended[h] = (hourlyAttended[h] || 0) + 1;
+  });
+  const hourLabels = Array.from({length: 13}, (_, i) => (i + 8) + ':00').filter((_, i) => hourlyData[i + 8] !== undefined || true);
+  const allHours = Array.from({length: 13}, (_, i) => i + 8); // 8 to 20
+  const hourCounts  = allHours.map(h => hourlyData[h] || 0);
+  const hourRates   = allHours.map(h => hourlyData[h] ? Math.round((hourlyAttended[h] || 0) / hourlyData[h] * 100) : null);
+  const hourCanvasEl = document.getElementById('hourChart');
+  if (hourCanvasEl && subset.some(c => c.hora)) {
+    charts.hour = new Chart(hourCanvasEl, {
+      type: 'bar',
+      data: {
+        labels: allHours.map(h => h + ':00'),
+        datasets: [
+          { type: 'bar', label: 'Llamadas', data: hourCounts,
+            backgroundColor: allHours.map(h => {
+              const rate = hourlyData[h] ? (hourlyAttended[h]||0)/hourlyData[h] : 0;
+              return rate > 0.5 ? 'rgba(0,166,80,.65)' : rate > 0.3 ? 'rgba(52,131,250,.6)' : 'rgba(148,163,184,.45)';
+            }),
+            borderRadius: 4, borderSkipped: false, yAxisID: 'y'
+          },
+          { type: 'line', label: 'Tasa atención %', data: hourRates,
+            borderColor: '#d97706', borderWidth: 2.5, pointBackgroundColor: '#d97706',
+            pointRadius: 4, tension: 0.3, fill: false, yAxisID: 'y2',
+            spanGaps: false
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 12 } },
+          tooltip: { callbacks: { afterBody: ctx => {
+            const h = allHours[ctx[0].dataIndex];
+            const cnt = hourlyData[h] || 0;
+            const att = hourlyAttended[h] || 0;
+            return cnt ? [`Atendieron: ${att}/${cnt}`] : [];
+          }}}
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 11 } } },
+          y: { beginAtZero: true, position: 'left', grid: { color: '#f1f5f9' },
+               ticks: { color: '#64748b', font: { size: 11 }, stepSize: 1 } },
+          y2: { beginAtZero: true, max: 100, position: 'right', grid: { display: false },
+                ticks: { color: '#d97706', font: { size: 11 }, callback: v => v != null ? v + '%' : '' } }
+        }
+      }
+    });
+  } else if (hourCanvasEl) {
+    const ctx = hourCanvasEl.getContext('2d');
+    ctx.clearRect(0, 0, hourCanvasEl.width, hourCanvasEl.height);
+    ctx.fillStyle = '#aaa'; ctx.font = '12px Inter,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Registrá la hora en tus llamadas para ver este gráfico', hourCanvasEl.width / 2, 100);
+  }
+
+  // ── Motivos de rechazo ──────────────────────────────────────────────────
+  destroyChart('rechazoChart');
+  const rechazoMap = {};
+  subset.forEach(c => {
+    if (c.resultado === 'No interesado' && c.motRechazo) {
+      rechazoMap[c.motRechazo] = (rechazoMap[c.motRechazo] || 0) + 1;
+    }
+  });
+  const rechazoCanvasEl = document.getElementById('rechazoChart');
+  if (rechazoCanvasEl && Object.keys(rechazoMap).length > 0) {
+    const rLabels = Object.keys(rechazoMap).sort((a, b) => rechazoMap[b] - rechazoMap[a]);
+    const rData   = rLabels.map(k => rechazoMap[k]);
+    const rColors = ['#dc2626','#d97706','#7c3aed','#0d9488','#2563eb','#64748b','#94a3b8'];
+    charts.rechazo = new Chart(rechazoCanvasEl, {
+      type: 'bar',
+      data: {
+        labels: rLabels.map(l => l.length > 22 ? l.slice(0, 20) + '…' : l),
+        datasets: [{ data: rData,
+          backgroundColor: rColors.slice(0, rLabels.length),
+          borderRadius: 6, borderSkipped: false }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: {
+            label: ctx => {
+              const total = rData.reduce((a, b) => a + b, 0);
+              return ` ${ctx.raw} (${Math.round(ctx.raw / total * 100)}%)`;
+            }
+          }}
+        },
+        scales: {
+          x: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', font: { size: 11 }, stepSize: 1 } },
+          y: { grid: { display: false }, ticks: { color: '#1D1D1B', font: { size: 11 } } }
+        }
+      }
+    });
+  } else if (rechazoCanvasEl) {
+    const ctx = rechazoCanvasEl.getContext('2d');
+    ctx.clearRect(0, 0, rechazoCanvasEl.width, rechazoCanvasEl.height);
+    ctx.fillStyle = '#aaa'; ctx.font = '12px Inter,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Sin datos de rechazo aún. Seleccioná "No interesado" + motivo al registrar.', rechazoCanvasEl.width / 2, 100);
+  }
+
+  // ── ¿Por qué no estoy convirtiendo? ────────────────────────────────────
+
+  // Helper: get rubro for a call (from brandsDB, fallback to manual field)
+  const getRubro = c => {
+    const db = brandsDB.find(b => b.marca === c.marca);
+    return (db?.rubro || c.rubro || '').trim() || 'Sin rubro';
+  };
+  const normCargo = c => {
+    const raw = (c.cargo || '').trim();
+    if (!raw) return 'Sin cargo';
+    const lc = raw.toLowerCase();
+    if (lc.includes('dueño') || lc.includes('dueno') || lc.includes('owner') || lc.includes('propietario')) return 'Dueño/Propietario';
+    if (lc.includes('ceo') || lc.includes('director') || lc.includes('gerente gral') || lc.includes('presidente')) return 'CEO/Director Gral';
+    if (lc.includes('gerente') || lc.includes('jefe')) return 'Gerente/Jefe';
+    if (lc.includes('comercial') || lc.includes('ventas') || lc.includes('sales')) return 'Comercial/Ventas';
+    if (lc.includes('marketing') || lc.includes('comunicac')) return 'Marketing';
+    if (lc.includes('admin') || lc.includes('compras') || lc.includes('operac')) return 'Admin/Operaciones';
+    if (lc.includes('secretaria') || lc.includes('recepcion') || lc.includes('asistente')) return 'Asistente/Recepción';
+    return raw.length > 20 ? raw.slice(0,18)+'…' : raw;
+  };
+
+  // Aggregate by rubro
+  const rubroStats = {};
+  subset.forEach(c => {
+    const r = getRubro(c);
+    if (!rubroStats[r]) rubroStats[r] = { total:0, attended:0, meeting:0 };
+    rubroStats[r].total++;
+    if (c.atendio === 'Sí') rubroStats[r].attended++;
+    if (c.resultado === 'Reunión agendada') rubroStats[r].meeting++;
+  });
+
+  // Sort rubros by meeting rate (min 3 calls to qualify)
+  const rubroList = Object.entries(rubroStats)
+    .filter(([, s]) => s.total >= 3)
+    .sort((a,b) => (b[1].meeting/b[1].total) - (a[1].meeting/a[1].total))
+    .slice(0, 10);
+
+  destroyChart('rubroConvChart');
+  if (rubroList.length >= 2) {
+    const rLabels = rubroList.map(([k]) => k);
+    const rMeetRate = rubroList.map(([,s]) => s.total ? +(s.meeting/s.total*100).toFixed(1) : 0);
+    const rAnsRate  = rubroList.map(([,s]) => s.total ? +(s.attended/s.total*100).toFixed(1) : 0);
+    charts.rubroConv = new Chart(document.getElementById('rubroConvChart'), {
+      type: 'bar',
+      data: {
+        labels: rLabels,
+        datasets: [
+          { label: '% Reunión', data: rMeetRate, backgroundColor: 'rgba(0,166,80,.75)', borderRadius: 5, borderSkipped: false },
+          { label: '% Atención', data: rAnsRate, backgroundColor: 'rgba(52,131,250,.45)', borderRadius: 5, borderSkipped: false }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font:{size:11}, boxWidth:10, padding:12 } },
+          tooltip: { callbacks: { afterBody: ctx => {
+            const s = rubroList[ctx[0].dataIndex][1];
+            return [`${s.meeting} reuniones de ${s.total} llamadas`];
+          }}}
+        },
+        scales: {
+          x: { grid:{display:false}, ticks:{color:'#64748b',font:{size:10},maxRotation:30} },
+          y: { beginAtZero:true, max:100, grid:{color:'#f1f5f9'}, ticks:{color:'#64748b',font:{size:11},callback:v=>v+'%'} }
+        }
+      }
+    });
+  } else {
+    const el = document.getElementById('rubroConvChart');
+    if (el) { const ctx=el.getContext('2d'); ctx.clearRect(0,0,el.width,el.height);
+      ctx.fillStyle='#bbb'; ctx.font='12px Inter,sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Necesitás cargar rubros en la base de marcas y tener ≥3 llamadas por rubro', el.width/2, el.parentElement.offsetHeight/2||100); }
+  }
+
+  // Aggregate by cargo
+  const cargoStats = {};
+  subset.forEach(c => {
+    const g = normCargo(c);
+    if (!cargoStats[g]) cargoStats[g] = { total:0, attended:0, meeting:0, closed:0 };
+    cargoStats[g].total++;
+    if (c.atendio === 'Sí') cargoStats[g].attended++;
+    if (c.resultado === 'Reunión agendada') cargoStats[g].meeting++;
+    if (c.resReunion === 'Cerrado') cargoStats[g].closed++;
+  });
+  const cargoList = Object.entries(cargoStats)
+    .filter(([k,s]) => k !== 'Sin cargo' && s.total >= 2)
+    .sort((a,b) => b[1].total - a[1].total)
+    .slice(0, 8);
+
+  destroyChart('cargoAnsChart');
+  if (cargoList.length >= 2) {
+    const cLabels   = cargoList.map(([k]) => k);
+    const cAnsRate  = cargoList.map(([,s]) => s.total ? +(s.attended/s.total*100).toFixed(1) : 0);
+    const cMeetRate = cargoList.map(([,s]) => s.total ? +(s.meeting/s.total*100).toFixed(1) : 0);
+    const barColors = cAnsRate.map(r => r >= 60 ? 'rgba(0,166,80,.75)' : r >= 35 ? 'rgba(52,131,250,.65)' : 'rgba(242,61,79,.55)');
+    charts.cargoAns = new Chart(document.getElementById('cargoAnsChart'), {
+      type: 'bar',
+      data: {
+        labels: cLabels,
+        datasets: [
+          { type: 'bar', label: '% Atención', data: cAnsRate, backgroundColor: barColors, borderRadius: 5, borderSkipped: false, yAxisID: 'y' },
+          { type: 'line', label: '% Reunión', data: cMeetRate, borderColor: '#d97706', borderWidth: 2.5,
+            pointBackgroundColor: '#d97706', pointRadius: 4, tension: 0.3, fill: false, yAxisID: 'y' }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font:{size:11}, boxWidth:10, padding:12 } },
+          tooltip: { callbacks: { afterBody: ctx => {
+            const s = cargoList[ctx[0].dataIndex][1];
+            return [`${s.attended} atendieron · ${s.meeting} reuniones de ${s.total} llamadas`];
+          }}}
+        },
+        scales: {
+          x: { grid:{display:false}, ticks:{color:'#64748b',font:{size:10},maxRotation:30} },
+          y: { beginAtZero:true, max:100, grid:{color:'#f1f5f9'}, ticks:{color:'#64748b',font:{size:11},callback:v=>v+'%'} }
+        }
+      }
+    });
+  } else {
+    const el = document.getElementById('cargoAnsChart');
+    if (el) { const ctx=el.getContext('2d'); ctx.clearRect(0,0,el.width,el.height);
+      ctx.fillStyle='#bbb'; ctx.font='12px Inter,sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Completá el campo "Cargo" en tus llamadas para ver este análisis', el.width/2, el.parentElement.offsetHeight/2||100); }
+  }
+
+  // Volumen vs conversión por rubro (bubble-like horizontal bar)
+  destroyChart('rubroVolumeChart');
+  const rubroAll = Object.entries(rubroStats)
+    .filter(([,s]) => s.total >= 2)
+    .sort((a,b) => b[1].total - a[1].total)
+    .slice(0, 10);
+  if (rubroAll.length >= 2) {
+    const rvLabels   = rubroAll.map(([k]) => k);
+    const rvVolume   = rubroAll.map(([,s]) => s.total);
+    const rvMeetRate = rubroAll.map(([,s]) => s.total ? +(s.meeting/s.total*100).toFixed(1) : 0);
+    // Color: high volume + high rate = green; high volume + low rate = red; low volume = gray
+    const maxVol = Math.max(...rvVolume);
+    const rvColors = rubroAll.map(([,s]) => {
+      const volPct = s.total / maxVol;
+      const rate   = s.total ? s.meeting/s.total : 0;
+      if (volPct > 0.5 && rate > 0.1) return 'rgba(0,166,80,.7)';
+      if (volPct > 0.5 && rate <= 0.05) return 'rgba(242,61,79,.65)';
+      if (rate > 0.15) return 'rgba(52,131,250,.65)';
+      return 'rgba(148,163,184,.5)';
+    });
+    charts.rubroVolume = new Chart(document.getElementById('rubroVolumeChart'), {
+      type: 'bar',
+      data: {
+        labels: rvLabels,
+        datasets: [
+          { type: 'bar', label: 'Llamadas', data: rvVolume, backgroundColor: rvColors, borderRadius: 4, borderSkipped: false, yAxisID: 'y' },
+          { type: 'line', label: '% Reunión', data: rvMeetRate, borderColor: '#d97706', borderWidth: 2,
+            pointBackgroundColor: '#d97706', pointRadius: 3, tension: 0.3, fill: false, yAxisID: 'y2' }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { font:{size:11}, boxWidth:10, padding:12 } },
+          tooltip: { callbacks: { afterBody: ctx => {
+            const s = rubroAll[ctx[0].dataIndex][1];
+            return [`${s.meeting} reuniones / ${s.total} llamadas (${s.total?Math.round(s.meeting/s.total*100):0}%)`];
+          }}}
+        },
+        scales: {
+          x: { grid:{display:false}, ticks:{color:'#64748b',font:{size:10},maxRotation:30} },
+          y: { beginAtZero:true, position:'left', grid:{color:'#f1f5f9'}, ticks:{color:'#64748b',font:{size:11}}, title:{display:true,text:'Llamadas',font:{size:10},color:'#94a3b8'} },
+          y2: { beginAtZero:true, max:100, position:'right', grid:{display:false}, ticks:{color:'#d97706',font:{size:11},callback:v=>v+'%'} }
+        }
+      }
+    });
+  } else {
+    const el = document.getElementById('rubroVolumeChart');
+    if (el) { const ctx=el.getContext('2d'); ctx.clearRect(0,0,el.width,el.height);
+      ctx.fillStyle='#bbb'; ctx.font='12px Inter,sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Necesitás rubros en la base de marcas para ver este gráfico', el.width/2, el.parentElement.offsetHeight/2||100); }
+  }
+
+  // Embudo por cargo
+  destroyChart('cargoFunnelChart');
+  if (cargoList.length >= 2) {
+    const cfLabels = cargoList.map(([k]) => k);
+    charts.cargoFunnel = new Chart(document.getElementById('cargoFunnelChart'), {
+      type: 'bar',
+      data: {
+        labels: cfLabels,
+        datasets: [
+          { label: 'Llamadas', data: cargoList.map(([,s])=>s.total),        backgroundColor:'rgba(148,163,184,.5)',  borderRadius:3, borderSkipped:false },
+          { label: 'Atendieron', data: cargoList.map(([,s])=>s.attended),   backgroundColor:'rgba(52,131,250,.65)',  borderRadius:3, borderSkipped:false },
+          { label: 'Reuniones', data: cargoList.map(([,s])=>s.meeting),     backgroundColor:'rgba(217,119,6,.75)',   borderRadius:3, borderSkipped:false },
+          { label: 'Cerradas', data: cargoList.map(([,s])=>s.closed),       backgroundColor:'rgba(0,166,80,.8)',     borderRadius:3, borderSkipped:false }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position:'bottom', labels:{font:{size:10},boxWidth:10,padding:10} },
+          tooltip: { callbacks: { afterBody: ctx => {
+            const s = cargoList[ctx[0].dataIndex][1];
+            const ansR = s.total ? Math.round(s.attended/s.total*100) : 0;
+            const metR = s.total ? Math.round(s.meeting/s.total*100) : 0;
+            return [`Atención: ${ansR}% · Reunión: ${metR}%`];
+          }}}
+        },
+        scales: {
+          x: { grid:{display:false}, ticks:{color:'#64748b',font:{size:10},maxRotation:30} },
+          y: { beginAtZero:true, grid:{color:'#f1f5f9'}, ticks:{color:'#64748b',font:{size:11}} }
+        }
+      }
+    });
+  } else {
+    const el = document.getElementById('cargoFunnelChart');
+    if (el) { const ctx=el.getContext('2d'); ctx.clearRect(0,0,el.width,el.height);
+      ctx.fillStyle='#bbb'; ctx.font='12px Inter,sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Completá el campo "Cargo" para ver el embudo por tipo de contacto', el.width/2, el.parentElement.offsetHeight/2||100); }
+  }
+
   // ── Brands chart ────────────────────────────────────────────────────────
   renderBrandsSection(subset);
 }
@@ -1069,6 +1492,29 @@ function renderBrandsSection(subset) {
     </div>`;
 }
 
+// ─── PIPELINE BRANDS (sync desde Google Drive PIPELINE — solo lectura) ────
+// Status válidos para mostrar en lista del día
+const PIPELINE_VALID_STATUS = new Set(['HUNTING','AWARENESS','NO INICIA','NO INICIO','CHURN','A CONFIRMAR']);
+
+const PIPELINE_BRANDS = [
+  {marca:'A-PINK',hunter:'Bauti',rubro:'Indumentaria',contacto:'Web',cargo:'',telefono:'1158030341',status:'HUNTING'},
+  {marca:'BRUXELLES',hunter:'Bauti',rubro:'Indumentaria',contacto:'Mati',cargo:'Encargado',telefono:'3413048178',status:'A CONFIRMAR'},
+  {marca:'ABRIL',hunter:'Bruno',rubro:'Indumentaria',contacto:'Angie',cargo:'Local',telefono:'1141928523',status:'HUNTING'},
+  {marca:'MALAGA BEACHWEAR',hunter:'Bruno',rubro:'Indumentaria',contacto:'',cargo:'',telefono:'',status:'HUNTING'},
+  {marca:'Akwara',hunter:'Franco Zaracho',rubro:'Indumentaria',contacto:'Andres',cargo:'Encargado',telefono:'1168785914',status:'HUNTING'},
+  {marca:'ASK DENIM',hunter:'Iara Hynst',rubro:'Indumentaria',contacto:'Daniel',cargo:'Dueño',telefono:'',status:'HUNTING'},
+  {marca:'Maw',hunter:'Vale',rubro:'Indumentaria',contacto:'Nancy',cargo:'Gerente',telefono:'11227197722',status:'A CONFIRMAR'},
+];
+
+// Helper: buscar marca en pipeline (case-insensitive por hunter)
+function getPipelineBrands(hunter) {
+  const h = hunter.toLowerCase();
+  return PIPELINE_BRANDS.filter(b =>
+    b.hunter.toLowerCase() === h &&
+    PIPELINE_VALID_STATUS.has(b.status.toUpperCase())
+  );
+}
+
 // ─── BRANDS DATABASE ──────────────────────────────────────────────────────
 let brandsDB = JSON.parse(localStorage.getItem('hunting_brands_db') || '[]');
 
@@ -1080,12 +1526,23 @@ function importBrandsCSV(file) {
     const text = e.target.result;
     const lines = text.split(/\r?\n/).filter(l => l.trim());
     if (lines.length < 2) { alert('El archivo está vacío o no tiene filas.'); return; }
-    const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase()
-      .replace('marca','marca').replace('teléfono','telefono').replace('telefono','telefono')
-      .replace('contacto','contacto').replace('cargo','cargo')
-      .replace('hunter','hunter').replace('asignado','hunter')
-      .replace('dirección','direccion').replace('direccion','direccion')
-      .replace('notas','notas').replace('nota','notas'));
+    const normalizeHeader = h => {
+      h = h.trim().toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g,''); // remove accents
+      if (['marca','brand','empresa','company'].includes(h)) return 'marca';
+      if (['telefono','teléfono','phone','celular','tel'].includes(h)) return 'telefono';
+      if (['contacto','contact','nombre'].includes(h)) return 'contacto';
+      if (['cargo','puesto','role','position'].includes(h)) return 'cargo';
+      if (['hunter','asignado','vendedor','assigned'].includes(h)) return 'hunter';
+      if (['direccion','dirección','address'].includes(h)) return 'direccion';
+      if (['rubro','industria','industry','sector','categoria','categoría','category'].includes(h)) return 'rubro';
+      if (['tamaño','tamano','size','empleados','employees','facturacion','facturación'].includes(h)) return 'tamano';
+      if (['notas','nota','notes','comentarios','comentario','comment'].includes(h)) return 'notas';
+      if (['email','mail','correo'].includes(h)) return 'email';
+      if (['sitio','web','website','url'].includes(h)) return 'web';
+      return h;
+    };
+    const headers = parseCSVLine(lines[0]).map(normalizeHeader);
     brandsDB = lines.slice(1).map(l => {
       const cells = parseCSVLine(l);
       const obj = {};
@@ -1126,6 +1583,14 @@ function generateDailyList(hunter, maxItems = 20) {
     const bh = (b.hunter || '').toLowerCase().trim();
     return bh === hunter.toLowerCase() && !calledThisMonth.has(b.marca) && !p1Brands.has(b.marca);
   });
+  const dbBrandNames = new Set(dbBrands.map(b => b.marca.toLowerCase()));
+
+  // P2-Pipeline — From PIPELINE_BRANDS: active status, not in brandsDB already, not called this month
+  const pipelineBrands = getPipelineBrands(hunter).filter(b =>
+    !calledThisMonth.has(b.marca) &&
+    !p1Brands.has(b.marca) &&
+    !dbBrandNames.has(b.marca.toLowerCase())
+  );
 
   // P2b — From calls history: no answer last time, not called this month, not in p1
   const p2Calls = Object.values(lastCall)
@@ -1156,6 +1621,14 @@ function generateDailyList(hunter, maxItems = 20) {
             '🔥 Seguimiento', 'tag-followup', c.fecha, null);
   });
 
+  // Pipeline brands primero (antes del CSV importado, son del PIPELINE oficial)
+  pipelineBrands.forEach(b => {
+    const lc = lastCall[b.marca];
+    const statusTag = b.status === 'HUNTING' ? '🎯 Pipeline' : '🕐 A confirmar';
+    addItem(b.marca, b.telefono||'', b.contacto||'', b.cargo||'',
+            statusTag, 'tag-pipeline', lc?.fecha||'', null);
+  });
+
   dbBrands.forEach(b => {
     const lc = lastCall[b.marca];
     addItem(b.marca, b.telefono||'', b.contacto||'', b.cargo||'',
@@ -1183,13 +1656,20 @@ function renderDailyListHTML(hunter, color) {
   const today = new Date().toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'long'});
   const todayStr = today.charAt(0).toUpperCase() + today.slice(1);
 
+  const p0Items  = list.filter(x => x.tagClass === 'tag-pipeline');
   const p1Items  = list.filter(x => x.tagClass === 'tag-followup');
   const p2Items  = list.filter(x => x.tagClass === 'tag-noanswer');
   const p3Items  = list.filter(x => x.tagClass === 'tag-reassign');
 
-  const itemHTML = (item, cls) => `
+  const itemHTML = (item, cls) => {
+    const db = brandsDB.find(b => b.marca === item.brand) ||
+               PIPELINE_BRANDS.find(b => b.marca === item.brand) || {};
+    const rubro  = db.rubro  || '';
+    const tamano = db.tamano || '';
+    const metaLine = [rubro, tamano].filter(Boolean).join(' · ');
+    return `
     <div class="daily-item ${cls}">
-      <div class="daily-item-brand">${item.brand}</div>
+      <div class="daily-item-brand">${item.brand}${metaLine ? `<span style="font-size:10px;color:#888;font-weight:400;margin-left:6px">${metaLine}</span>` : ''}</div>
       <div class="daily-item-contact">
         ${item.contact ? `<span>👤 ${item.contact}${item.cargo ? ' · '+item.cargo : ''}</span>` : '<span style="color:#bbb">Sin contacto</span>'}
       </div>
@@ -1199,16 +1679,19 @@ function renderDailyListHTML(hunter, color) {
       <span class="daily-item-tag ${item.tagClass}">${item.tag}</span>
       ${item.date ? `<span style="font-size:10px;color:#aaa;margin-left:2px">${item.date.slice(5).replace('-','/')}</span>` : ''}
       <button class="daily-item-btn" onclick="quickCallFromList('${item.brand}','${hunter}')">+ Registrar</button>
-    </div>`;
+    </div>`
+  };
 
-  const noDBMsg = brandsDB.filter(b=>(b.hunter||'').toLowerCase()===hunter.toLowerCase()).length === 0
+  const hasPipelineBrands = getPipelineBrands(hunter).length > 0;
+  const hasDBBrands = brandsDB.filter(b=>(b.hunter||'').toLowerCase()===hunter.toLowerCase()).length > 0;
+  const noDBMsg = !hasDBBrands
     ? `<div class="daily-import-box">
-        <p>📂 Cargá la base de marcas para completar la lista con todas las marcas asignadas a <strong>${hunter}</strong></p>
+        <p>📂 ${hasPipelineBrands ? 'Marcas del Pipeline cargadas. Podés importar tu base propia para completar la lista.' : 'Cargá la base de marcas para completar la lista con todas las marcas asignadas a <strong>'+hunter+'</strong>.'}</p>
         <label class="btn btn-primary btn-sm" style="cursor:pointer;display:inline-block">
           📥 Importar Excel / CSV
           <input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importBrandsCSV(this.files[0])">
         </label>
-        <div class="daily-brands-count">${brandsDB.length > 0 ? brandsDB.length+' marcas ya cargadas en total' : ''}</div>
+        <div class="daily-brands-count">${brandsDB.length > 0 ? brandsDB.length+' marcas en base propia' : ''}</div>
       </div>`
     : `<div style="display:flex;justify-content:flex-end;margin-top:12px">
         <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px">
@@ -1225,6 +1708,11 @@ function renderDailyListHTML(hunter, color) {
         </div>
         <span class="daily-count" style="background:${color}20;color:${color}">${list.length} marcas</span>
       </div>
+
+      ${p0Items.length ? `
+        <div class="daily-section-lbl" style="color:var(--blue-d)">🎯 Pipeline — marcas asignadas activas</div>
+        ${p0Items.map(i => itemHTML(i, 'p0')).join('')}
+      ` : ''}
 
       ${p1Items.length ? `
         <div class="daily-section-lbl">🔥 Seguimientos — con interés previo</div>
@@ -1255,8 +1743,9 @@ function quickCallFromList(marca, hunter) {
     const fHunter = document.getElementById('fHunter');
     if (fMarca) fMarca.value = marca;
     if (fHunter) { fHunter.value = hunter; }
-    // Pre-fill contact if in DB
-    const db = brandsDB.find(b => b.marca === marca);
+    // Pre-fill contact if in DB (brandsDB first, then PIPELINE_BRANDS as fallback)
+    const db = brandsDB.find(b => b.marca === marca) ||
+               PIPELINE_BRANDS.find(b => b.marca === marca);
     if (db) {
       const fContacto = document.getElementById('fContacto');
       const fCargo    = document.getElementById('fCargo');
@@ -1288,46 +1777,72 @@ function renderHunters() {
   const remaining = Math.max(g-m.closed,0);
   const callsNeed = m.rMeet>0&&m.rClose>0&&(d-daysEl)>0 ? Math.ceil(remaining/m.rClose/m.rMeet/(d-daysEl)) : 0;
 
-  const pctAnsH   = m.total    ? (m.rAns*100).toFixed(0)    : 0;
-  const pctNoAnsH = m.total    ? (100-m.rAns*100).toFixed(0): 0;
-  const pctIntH   = m.attended ? (m.rInterest*100).toFixed(0): 0;
-  // Hunter call goal
-  const hCallGoal     = Math.round(config.callTarget * config.days / config.hunters.length);
-  const hCallPct      = hCallGoal > 0 ? Math.min(m.total / hCallGoal, 1) : 0;
-  const hCallsLeft    = Math.max(hCallGoal - m.total, 0);
-  const hExpected     = Math.round(daysEl * config.callTarget / config.hunters.length);
-  const hIsAhead      = m.total >= hExpected;
+  // Split por tipo
+  const hLlamadas = hCalls.filter(c => c.tipo !== 'Visita presencial');
+  const hVisitas  = hCalls.filter(c => c.tipo === 'Visita presencial');
+  const mHL = metricsFor(hLlamadas);
+  const mHV = metricsFor(hVisitas);
+  const convHL = mHL.total ? mHL.meetings/mHL.total : 0;
+  const convHV = mHV.total ? mHV.meetings/mHV.total : 0;
+
+  // Hunter call goal (solo llamadas)
+  const hCallGoal  = Math.round(config.callTarget * config.days / config.hunters.length);
+  const hCallPct   = hCallGoal > 0 ? Math.min(mHL.total / hCallGoal, 1) : 0;
+  const hCallsLeft = Math.max(hCallGoal - mHL.total, 0);
+  const hExpected  = Math.round(daysEl * config.callTarget / config.hunters.length);
+  const hIsAhead   = mHL.total >= hExpected;
 
   const kpisHTML = `
     <div class="kpi-sections">
+
+      <!-- ── LLAMADAS ── -->
       <div class="kpi-group">
-        <div class="kpi-group-lbl">📞 Llamadas — ${config.period}</div>
+        <div class="kpi-group-lbl">📞 Llamadas telefónicas</div>
         <div class="kpi-row">
-          <div class="kpi c-blue"><div class="lbl">Total del mes</div><div class="val">${m.total}</div><div class="sub">~${cpd.toFixed(1)} llamadas/día · ${m.uniqueBrands} marcas</div></div>
-          <div class="kpi c-purple"><div class="lbl">Meta personal</div><div class="val">${hCallGoal}</div><div class="sub">${config.callTarget}/día × ${config.days} días ÷ ${config.hunters.length} hunters</div></div>
-          <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${m.attended}</div><div class="sub">${pctAnsH}% del total de llamadas</div></div>
-          <div class="kpi c-gray"><div class="lbl">No atendieron</div><div class="val">${m.noAttended}</div><div class="sub">${pctNoAnsH}% del total de llamadas</div></div>
+          <div class="kpi c-blue"><div class="lbl">Total del mes</div><div class="val">${mHL.total}</div><div class="sub">Meta: ${hCallGoal} · ~${cpd.toFixed(1)}/día</div></div>
+          <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${mHL.attended}</div><div class="sub">${mHL.total?(mHL.attended/mHL.total*100).toFixed(0):0}% del total</div></div>
+          <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${mHL.interested}</div><div class="sub">${mHL.attended?(mHL.interested/mHL.attended*100).toFixed(0):0}% de los que atendieron</div></div>
+          <div class="kpi c-amber"><div class="lbl">Llamada → reunión</div><div class="val">${(convHL*100).toFixed(1)}%</div><div class="sub">1 reunión cada ${mHL.rMeet>0?Math.round(1/mHL.rMeet):'—'} llamadas</div></div>
+          <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${mHL.noInt}</div><div class="sub">${mHL.attended?(mHL.noInt/mHL.attended*100).toFixed(0):0}% de los que atendieron</div></div>
+          <div class="kpi c-teal"><div class="lbl">Seguimientos</div><div class="val">${mHL.followUp}</div><div class="sub">A volver a llamar</div></div>
         </div>
       </div>
-      <div class="kpi-group">
-        <div class="kpi-group-lbl">💡 Interés — de los que atendieron</div>
+
+      <!-- ── VISITAS ── -->
+      <div class="kpi-group" style="border-left:3px solid var(--blue-l)">
+        <div class="kpi-group-lbl">📍 Visitas presenciales <span style="font-size:9px;font-weight:400;color:#bbb">(miérc / jueves)</span></div>
+        ${mHV.total === 0 ? `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 12px;color:#bbb;text-align:center;gap:8px">
+          <span style="font-size:28px">🗓</span>
+          <span style="font-size:12px">Sin visitas registradas.<br>Seleccioná <strong style="color:#888">📍 Visita presencial</strong><br>al registrar una ida a Flores.</span>
+        </div>` : `
         <div class="kpi-row">
-          <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${m.interested}</div><div class="sub">${pctIntH}% de los que atendieron</div></div>
-          <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${m.noInt}</div><div class="sub">${m.attended?(m.noInt/m.attended*100).toFixed(0):0}% de los que atendieron</div></div>
-          <div class="kpi c-amber"><div class="lbl">Interés → reunión</div><div class="val">${(m.rMeetInt*100).toFixed(0)}%</div><div class="sub">${m.meetings} reunión${m.meetings!==1?'es':''} de ${m.interested} interesados</div></div>
-          <div class="kpi c-amber"><div class="lbl">Llamada → reunión</div><div class="val">${(m.rMeet*100).toFixed(1)}%</div><div class="sub">1 reunión cada ${m.rMeet>0?Math.round(1/m.rMeet):'-'} llamadas</div></div>
-        </div>
+          <div class="kpi c-blue"><div class="lbl">Total visitas</div><div class="val">${mHV.total}</div><div class="sub">1 cada ${mHL.total>0&&mHV.total>0?Math.round(mHL.total/mHV.total):'—'} llamadas</div></div>
+          <div class="kpi c-blue"><div class="lbl">Atendieron</div><div class="val">${mHV.attended}</div><div class="sub">${mHV.total?(mHV.attended/mHV.total*100).toFixed(0):0}% de las visitas</div></div>
+          <div class="kpi c-teal"><div class="lbl">Con interés</div><div class="val">${mHV.interested}</div><div class="sub">${mHV.attended?(mHV.interested/mHV.attended*100).toFixed(0):0}% de los que atendieron</div></div>
+          <div class="kpi c-green"><div class="lbl">Visita → reunión</div><div class="val">${(convHV*100).toFixed(1)}%</div><div class="sub">1 reunión cada ${mHV.rMeet>0?Math.round(1/mHV.rMeet):'—'} visitas</div></div>
+          <div class="kpi c-red"><div class="lbl">Sin interés</div><div class="val">${mHV.noInt}</div><div class="sub">${mHV.attended?(mHV.noInt/mHV.attended*100).toFixed(0):0}% de los que atendieron</div></div>
+          <div class="kpi c-teal"><div class="lbl">Seguimientos</div><div class="val">${mHV.followUp}</div><div class="sub">A volver a visitar</div></div>
+        </div>`}
       </div>
-      <div class="kpi-group" style="display:none"><!-- placeholder to keep hunter sections aligned --></div>
+
+      <!-- ── PIPELINE Y MARCAS ── -->
       <div class="kpi-group">
         <div class="kpi-group-lbl">✅ Pipeline y marcas</div>
         <div class="kpi-row">
           <div class="kpi c-green"><div class="lbl">Marcas cerradas</div><div class="val">${m.closed}</div><div class="sub">Meta: ${g.toFixed(0)} marcas este mes</div></div>
           <div class="kpi c-purple"><div class="lbl">Marcas únicas</div><div class="val">${m.uniqueBrands}</div><div class="sub">${m.brandsWithMeeting} con reunión agendada</div></div>
           <div class="kpi c-purple"><div class="lbl">Pipeline activo</div><div class="val">${m.meetings+m.warm}</div><div class="sub">${m.meetings} reuniones + ${m.warm} en proceso</div></div>
-          <div class="kpi c-teal"><div class="lbl">Seguimientos</div><div class="val">${m.followUp}</div><div class="sub">Marcas a volver a llamar</div></div>
+          ${mHV.total > 0 ? `
+          <div class="kpi ${convHV>=convHL?'c-green':'c-amber'}">
+            <div class="lbl">Visita vs Llamada</div>
+            <div class="val" style="font-size:14px;letter-spacing:-.3px">${convHV>=convHL?'📍 +efectiva':'📞 +efectiva'}</div>
+            <div class="sub">Visita ${(convHV*100).toFixed(0)}% · Llamada ${(convHL*100).toFixed(0)}% conv.</div>
+          </div>` : `
+          <div class="kpi c-teal"><div class="lbl">Seguimientos</div><div class="val">${m.followUp}</div><div class="sub">Marcas a rellamar</div></div>`}
         </div>
       </div>
+
     </div>`;
 
   document.getElementById('hunterDetail').innerHTML = `
@@ -1356,7 +1871,7 @@ function renderHunters() {
     <div class="prog-wrap" style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <strong style="font-size:13px">📞 Progreso de llamadas del mes</strong>
-        <span style="font-size:13px;font-weight:700;color:${hIsAhead?'#16a34a':'#dc2626'}">${m.total} / ${hCallGoal} (${(hCallPct*100).toFixed(0)}%) ${hIsAhead?'▲ adelante':'▼ abajo'}</span>
+        <span style="font-size:13px;font-weight:700;color:${hIsAhead?'#16a34a':'#dc2626'}">${mHL.total} / ${hCallGoal} (${(hCallPct*100).toFixed(0)}%) ${hIsAhead?'▲ adelante':'▼ abajo'}${mHV.total>0?` · 📍 ${mHV.total} visitas`:''}</span>
       </div>
       <div style="position:relative;height:18px;background:#e2e8f0;border-radius:20px;overflow:hidden">
         <div style="position:absolute;top:0;left:0;height:100%;width:${(hCallPct*100).toFixed(1)}%;background:linear-gradient(90deg,${color},${hIsAhead?'#16a34a':'#d97706'});border-radius:20px;transition:width .5s"></div>
@@ -1520,11 +2035,14 @@ function renderTable() {
       const est=estadoCall(c);
       return `<tr>
         <td style="white-space:nowrap">${c.fecha.slice(5).replace('-','/')}</td>
+        <td style="white-space:nowrap;color:var(--gray);font-size:12px">${c.hora||'—'}</td>
         <td style="display:${hunterCol?'table-cell':'none'}"><span style="font-size:11px;font-weight:600;color:${hunterColor(c.hunter)}">${c.hunter}</span></td>
-        <td><strong>${c.marca}</strong></td>
+        <td><strong>${c.marca}</strong>
+          ${c.tipo==='Visita presencial'?'<span style="font-size:9px;background:#EBF2FE;color:#2968C8;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">📍 Visita</span>':''}</td>
         <td><span class="badge ${est.cls}">${est.label}</span></td>
+        <td style="font-size:11px;color:var(--red)">${c.motRechazo||'—'}</td>
         <td style="color:var(--gray);font-size:12px">${c.fechaReunion?c.fechaReunion.slice(5).replace('-','/'):'—'}</td>
-        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray)" title="${c.notas}">${c.notas||'—'}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray)" title="${c.notas}">${c.notas||'—'}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-ghost btn-sm" onclick="editCall(${c.id})">✏</button>
           <button class="btn btn-danger btn-sm" onclick="deleteCall(${c.id})">✕</button>
@@ -1584,30 +2102,42 @@ function saveConfig(silent=false) {
 }
 
 // ─── MODAL ────────────────────────────────────────────────────────────────
+function toggleRechazo(val) {
+  document.getElementById('fMotRechazoWrap').style.display = val === 'No interesado' ? '' : 'none';
+}
 function openModal(id) {
   editingId=id||null;
-  const today=new Date().toISOString().slice(0,10);
+  const today = new Date().toISOString().slice(0,10);
+  const nowTime = new Date().toTimeString().slice(0,5);
   if(id){
     const c=calls.find(x=>x.id===id);
     document.getElementById('modalTitle').textContent='Editar llamada';
     document.getElementById('fFecha').value=c.fecha;
+    document.getElementById('fHora').value=c.hora||'';
+    document.getElementById('fTipo').value=c.tipo||'Llamada';
     document.getElementById('fHunter').value=c.hunter;
     document.getElementById('fMarca').value=c.marca;
     document.getElementById('fContacto').value=c.contacto;
     document.getElementById('fCargo').value=c.cargo;
     document.getElementById('fAtendio').value=c.atendio;
     document.getElementById('fResultado').value=c.resultado;
+    document.getElementById('fMotRechazo').value=c.motRechazo||'';
     document.getElementById('fFechaReunion').value=c.fechaReunion;
     document.getElementById('fResReunion').value=c.resReunion;
     document.getElementById('fNotas').value=c.notas;
+    toggleRechazo(c.resultado);
   } else {
     document.getElementById('modalTitle').textContent='Nueva llamada';
     document.getElementById('fFecha').value=today;
-    document.getElementById('fHunter').value=config.hunters[0]||'';
-    ['fMarca','fContacto','fCargo','fFechaReunion','fNotas'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fHora').value=nowTime;
+    document.getElementById('fTipo').value='Llamada';
+    document.getElementById('fHunter').value=viewAs!=='global'?viewAs:(config.hunters[0]||'');
+    ['fMarca','fContacto','fCargo','fFechaReunion','fNotas'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('fAtendio').value='No';
     document.getElementById('fResultado').value='No atendió';
+    document.getElementById('fMotRechazo').value='';
     document.getElementById('fResReunion').value='N/A';
+    toggleRechazo('No atendió');
   }
   document.getElementById('modalOverlay').classList.add('open');
 }
@@ -1616,13 +2146,19 @@ function saveCall(){
   const fecha=document.getElementById('fFecha').value;
   const marca=document.getElementById('fMarca').value.trim();
   if(!fecha||!marca){alert('Fecha y marca son obligatorios.');return;}
+  const resultado=document.getElementById('fResultado').value;
   const rec={
     id:editingId||Date.now(),
-    fecha,hunter:document.getElementById('fHunter').value,marca,
+    fecha,
+    hora:document.getElementById('fHora').value,
+    tipo:document.getElementById('fTipo').value||'Llamada',
+    hunter:document.getElementById('fHunter').value,
+    marca,
     contacto:document.getElementById('fContacto').value.trim(),
     cargo:document.getElementById('fCargo').value.trim(),
     atendio:document.getElementById('fAtendio').value,
-    resultado:document.getElementById('fResultado').value,
+    resultado,
+    motRechazo: resultado==='No interesado' ? document.getElementById('fMotRechazo').value : '',
     fechaReunion:document.getElementById('fFechaReunion').value,
     resReunion:document.getElementById('fResReunion').value,
     notas:document.getElementById('fNotas').value.trim(),

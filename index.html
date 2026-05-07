@@ -226,8 +226,8 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
 .bot-fab:hover{background:var(--blue-d);transform:scale(1.08)}
 .bot-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9998;backdrop-filter:blur(2px)}
 .bot-overlay.open{display:block}
-.bot-panel{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:min(98vw,720px);max-height:92vh;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -8px 32px rgba(0,0,0,.18);z-index:9999;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.32,1.2,.5,1);overflow:hidden}
-.bot-panel.open{transform:translateX(-50%) translateY(0)}
+.bot-panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.95);width:min(96vw,720px);max-height:90vh;background:#fff;border-radius:20px;box-shadow:0 16px 56px rgba(0,0,0,.25);z-index:9999;display:flex;flex-direction:column;transition:transform .28s cubic-bezier(.32,1.2,.5,1),opacity .28s;opacity:0;pointer-events:none;overflow:hidden}
+.bot-panel.open{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto}
 .bot-header{display:flex;align-items:center;gap:10px;padding:20px 28px 14px;border-bottom:1px solid var(--border)}
 .bot-header h3{flex:1;margin:0;font-size:17px;color:var(--dark)}
 .bot-close{background:none;border:none;cursor:pointer;font-size:20px;color:#888;padding:0;line-height:1}
@@ -236,7 +236,7 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
 .bot-hunter-row label{font-size:12px;font-weight:700;color:#666}
 .bot-hunter-sel{font-size:13px;border:1px solid var(--border);border-radius:8px;padding:5px 10px;background:#FAFAFA;color:var(--dark);cursor:pointer}
 .bot-input-row{display:flex;gap:8px;align-items:flex-end}
-.bot-textarea{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;resize:none;min-height:110px;font-family:inherit;color:var(--dark);transition:border .2s;line-height:1.55}
+.bot-textarea{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;resize:none;min-height:140px;font-family:inherit;color:var(--dark);transition:border .2s;line-height:1.55}
 .bot-textarea:focus{outline:none;border-color:var(--blue)}
 .bot-mic{width:44px;height:44px;border-radius:50%;border:2px solid var(--blue);background:#fff;color:var(--blue);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
 .bot-mic.active{background:#ef4444;border-color:#ef4444;color:#fff;animation:pulse-mic .8s infinite}

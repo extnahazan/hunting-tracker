@@ -2605,7 +2605,7 @@ O: "Visita a Mandala, quiere venir al summit"'></textarea>
   fab.className = 'bot-fab';
   fab.title = 'Registrar contacto rápido';
   fab.innerHTML = '🤖';
-  fab.onclick = openBotFn;
+  fab.onclick = function(){ window.openBotFn(); };
   document.body.appendChild(fab);
 
   const toast = document.createElement('div');

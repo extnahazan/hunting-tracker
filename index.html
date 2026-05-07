@@ -2639,12 +2639,13 @@ O: "Visita a Mandala, quiere venir al summit"'></textarea>
   };
   function closeBot(){ closeBotFn(); }
 
-  function hideBotPreview(){
+  window.hideBotPreview = function(){
     document.getElementById('botPreview').classList.remove('show');
     document.getElementById('botParseBtn').textContent = '🔍 Analizar';
     document.getElementById('botParseBtn').onclick = runBotParse;
     botParsed = null;
-  }
+  };
+  function hideBotPreview(){ window.hideBotPreview(); }
 
   // ── Parser de lenguaje natural ──
   function parseBotText(text, hunter){

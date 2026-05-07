@@ -220,6 +220,42 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#CCC;border-radius:10px}
 ::-webkit-scrollbar-thumb:hover{background:#AAA}
+
+/* ── BOT FLOTANTE ── */
+.bot-fab{position:fixed;bottom:24px;right:24px;z-index:9999;width:56px;height:56px;border-radius:50%;background:var(--blue);color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(37,99,235,.45);display:flex;align-items:center;justify-content:center;transition:all .2s;outline:none}
+.bot-fab:hover{background:var(--blue-d);transform:scale(1.08)}
+.bot-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9998;backdrop-filter:blur(2px)}
+.bot-overlay.open{display:block}
+.bot-panel{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:min(96vw,520px);max-height:85vh;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -8px 32px rgba(0,0,0,.18);z-index:9999;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.32,1.2,.5,1);overflow:hidden}
+.bot-panel.open{transform:translateX(-50%) translateY(0)}
+.bot-header{display:flex;align-items:center;gap:10px;padding:16px 20px 12px;border-bottom:1px solid var(--border)}
+.bot-header h3{flex:1;margin:0;font-size:15px;color:var(--dark)}
+.bot-close{background:none;border:none;cursor:pointer;font-size:20px;color:#888;padding:0;line-height:1}
+.bot-body{padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:12px}
+.bot-hunter-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bot-hunter-row label{font-size:12px;font-weight:700;color:#666}
+.bot-hunter-sel{font-size:13px;border:1px solid var(--border);border-radius:8px;padding:5px 10px;background:#FAFAFA;color:var(--dark);cursor:pointer}
+.bot-input-row{display:flex;gap:8px;align-items:flex-end}
+.bot-textarea{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;resize:none;min-height:72px;font-family:inherit;color:var(--dark);transition:border .2s;line-height:1.45}
+.bot-textarea:focus{outline:none;border-color:var(--blue)}
+.bot-mic{width:44px;height:44px;border-radius:50%;border:2px solid var(--blue);background:#fff;color:var(--blue);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.bot-mic.active{background:#ef4444;border-color:#ef4444;color:#fff;animation:pulse-mic .8s infinite}
+@keyframes pulse-mic{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+.bot-hint{font-size:11px;color:#999;line-height:1.5}
+.bot-preview{background:#F0F6FF;border:1.5px solid #C7DCFE;border-radius:10px;padding:12px 14px;font-size:13px;display:none;flex-direction:column;gap:6px}
+.bot-preview.show{display:flex}
+.bot-preview-row{display:flex;gap:8px;align-items:baseline}
+.bot-preview-lbl{font-size:11px;font-weight:700;color:#2968C8;min-width:90px}
+.bot-preview-val{color:var(--dark);font-size:13px;font-weight:600}
+.bot-preview-val.editable{border-bottom:1px dashed #2968C8;cursor:pointer;outline:none}
+.bot-preview-warn{color:#CC5500;font-size:11px;font-style:italic}
+.bot-actions{display:flex;gap:8px;padding:12px 20px 20px;border-top:1px solid var(--border)}
+.bot-btn-confirm{flex:1;padding:11px;border-radius:10px;border:none;background:var(--blue);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s}
+.bot-btn-confirm:hover{background:var(--blue-d)}
+.bot-btn-clear{padding:11px 16px;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:#666;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.bot-btn-clear:hover{background:#F5F5F5}
+.bot-toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .3s;z-index:99999;white-space:nowrap}
+.bot-toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -2502,6 +2538,303 @@ renderConfigHunters();
 syncViewSelect();
 activeHunterTab = config.hunters[0];
 refresh();
+
+// ─── BOT FLOTANTE ────────────────────────────────────────────────────────────
+(function(){
+  // ── Estado del bot ──
+  let botRecog = null, botListening = false, botParsed = null;
+
+  // ── Detectar hunter desde URL ?hunter=Natan ──
+  function detectHunterFromURL(){
+    try {
+      const p = new URLSearchParams(window.location.search);
+      const h = p.get('hunter');
+      if(h) {
+        const matched = config.hunters.find(x=>x.toLowerCase()===h.toLowerCase()) || h;
+        setViewAs(matched);
+      }
+    } catch(e){}
+  }
+  detectHunterFromURL();
+
+  // ── Renderizar el bot en el DOM ──
+  const overlay = document.createElement('div');
+  overlay.className = 'bot-overlay';
+  overlay.id = 'botOverlay';
+  overlay.onclick = closeBot;
+  document.body.appendChild(overlay);
+
+  const panel = document.createElement('div');
+  panel.className = 'bot-panel';
+  panel.id = 'botPanel';
+  panel.innerHTML = `
+    <div class="bot-header">
+      <span style="font-size:20px">🤖</span>
+      <h3>Registrar contacto rápido</h3>
+      <button class="bot-close" onclick="closeBotFn()" title="Cerrar">✕</button>
+    </div>
+    <div class="bot-body">
+      <div class="bot-hunter-row">
+        <label>Hunter:</label>
+        <select class="bot-hunter-sel" id="botHunterSel"></select>
+      </div>
+      <div class="bot-input-row">
+        <textarea class="bot-textarea" id="botText" placeholder='Ej: "Llamé a Cuenca, hay interés, quedamos para reunión el martes"
+O: "Visita a Mandala, quiere venir al summit"'></textarea>
+        <button class="bot-mic" id="botMicBtn" title="Hablar" onclick="toggleBotVoice()">🎤</button>
+      </div>
+      <p class="bot-hint">💡 Podés escribir o hablar naturalmente. El bot detectará la marca, tipo de contacto y resultado automáticamente.</p>
+      <div class="bot-preview" id="botPreview">
+        <div class="bot-preview-row"><span class="bot-preview-lbl">Hunter</span><span class="bot-preview-val" id="bp-hunter"></span></div>
+        <div class="bot-preview-row"><span class="bot-preview-lbl">Marca</span><span class="bot-preview-val" id="bp-marca"></span></div>
+        <div class="bot-preview-row"><span class="bot-preview-lbl">Tipo</span><span class="bot-preview-val" id="bp-tipo"></span></div>
+        <div class="bot-preview-row"><span class="bot-preview-lbl">Resultado</span><span class="bot-preview-val" id="bp-resultado"></span></div>
+        <div class="bot-preview-row" id="bp-reunionRow" style="display:none"><span class="bot-preview-lbl">Fecha reunión</span><span class="bot-preview-val" id="bp-reunion"></span></div>
+        <div class="bot-preview-row"><span class="bot-preview-lbl">Atendió</span><span class="bot-preview-val" id="bp-atendio"></span></div>
+        <div class="bot-preview-row" id="bp-notasRow" style="display:none"><span class="bot-preview-lbl">Notas</span><span class="bot-preview-val" id="bp-notas"></span></div>
+        <div id="bp-warn" class="bot-preview-warn" style="display:none"></div>
+      </div>
+    </div>
+    <div class="bot-actions">
+      <button class="bot-btn-clear" onclick="document.getElementById('botText').value='';hideBotPreview()">Limpiar</button>
+      <button class="bot-btn-confirm" id="botParseBtn" onclick="runBotParse()">🔍 Analizar</button>
+    </div>`;
+  document.body.appendChild(panel);
+
+  const fab = document.createElement('button');
+  fab.className = 'bot-fab';
+  fab.title = 'Registrar contacto rápido';
+  fab.innerHTML = '🤖';
+  fab.onclick = openBotFn;
+  document.body.appendChild(fab);
+
+  const toast = document.createElement('div');
+  toast.className = 'bot-toast';
+  toast.id = 'botToast';
+  document.body.appendChild(toast);
+
+  // Llenar selector de hunters
+  function fillHunterSel(){
+    const sel = document.getElementById('botHunterSel');
+    if(!sel) return;
+    sel.innerHTML = '';
+    config.hunters.forEach(h=>{
+      const o = document.createElement('option');
+      o.value = h; o.textContent = h;
+      if(h === viewAs || (viewAs==='global' && h===config.hunters[0])) o.selected = true;
+      sel.appendChild(o);
+    });
+  }
+
+  window.openBotFn = function(){
+    fillHunterSel();
+    document.getElementById('botOverlay').classList.add('open');
+    document.getElementById('botPanel').classList.add('open');
+    setTimeout(()=>document.getElementById('botText').focus(),400);
+  };
+  window.closeBotFn = function(){
+    document.getElementById('botOverlay').classList.remove('open');
+    document.getElementById('botPanel').classList.remove('open');
+    stopBotVoice();
+  };
+  function closeBot(){ closeBotFn(); }
+
+  function hideBotPreview(){
+    document.getElementById('botPreview').classList.remove('show');
+    document.getElementById('botParseBtn').textContent = '🔍 Analizar';
+    document.getElementById('botParseBtn').onclick = runBotParse;
+    botParsed = null;
+  }
+
+  // ── Parser de lenguaje natural ──
+  function parseBotText(text, hunter){
+    const t = text.toLowerCase();
+    const today = new Date();
+
+    // --- Tipo de contacto ---
+    const isVisita = /visit[ao]|presencial|fui a|estuve en|pasé por|pase por/.test(t);
+    const tipo = isVisita ? 'Visita presencial' : 'Llamada';
+
+    // --- Resultado ---
+    let resultado = 'Sin respuesta';
+    let atendio = 'No';
+    if (/reuni[oó]n|agend[ao]|quedamos|cita|nos vemos|meeting|juntamos/.test(t)){
+      resultado = 'Reunión agendada'; atendio = 'Sí';
+    } else if (/inter[eé]s|interesad|le interesa|quiere|quer[ií]a|le copa|summit|evento/.test(t)){
+      resultado = 'Volver a llamar'; atendio = 'Sí';
+    } else if (/no le interesa|no está interesad|no quiere|no tiene inter|descartad/.test(t)){
+      resultado = 'No interesado'; atendio = 'Sí';
+    } else if (/atend[ií]|habl[eé]|habl[ao]|contest[oó]|llamé y|visit[eé]/.test(t)){
+      resultado = 'Volver a llamar'; atendio = 'Sí';
+    } else if (/no atend|no contest|no atiende|no levant|buzón|buzon|no le entr/.test(t)){
+      resultado = 'Sin respuesta'; atendio = 'No';
+    }
+
+    // --- Fecha de reunión ---
+    let fechaReunion = '';
+    const diasSemana = ['domingo','lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado'];
+    const diasSemanaEn = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    let foundDay = -1;
+    diasSemana.forEach((d,i)=>{ if(t.includes(d)) foundDay = i%7; });
+    if(foundDay>=0){
+      const d = new Date(today);
+      let diff = foundDay - d.getDay();
+      if(diff<=0) diff += 7;
+      d.setDate(d.getDate()+diff);
+      fechaReunion = d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    }
+    // "semana próxima / que viene"
+    if(!fechaReunion && /semana pr[oó]xima|semana que viene|next week/.test(t)){
+      const d = new Date(today);
+      d.setDate(d.getDate()+7);
+      fechaReunion = d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    }
+
+    // --- Marca: buscar en PIPELINE_BRANDS + calls existentes ---
+    const allBrands = [
+      ...PIPELINE_BRANDS.map(b=>b.marca),
+      ...calls.map(c=>c.marca)
+    ];
+    const uniqueBrands = [...new Set(allBrands)];
+    let marca = '';
+    let bestScore = 0;
+    uniqueBrands.forEach(b=>{
+      if(!b) return;
+      const bLow = b.toLowerCase();
+      // exact
+      if(t.includes(bLow)){ if(bLow.length>bestScore){ marca=b; bestScore=bLow.length; } return; }
+      // partial (≥4 chars)
+      const words = bLow.split(/\s+/);
+      words.forEach(w=>{
+        if(w.length>=4 && t.includes(w) && w.length>bestScore){ marca=b; bestScore=w.length; }
+      });
+    });
+
+    // --- Notas: extraer objeciones u otras frases ---
+    let notas = '';
+    const notaMatch = text.match(/(?:pero|aunque|sin embargo|objeción|objecion|porque|ya que|porque|nota|aclaración|aclaracion)[^.!?]*/i);
+    if(notaMatch) notas = notaMatch[0].trim().replace(/^[,;:\s]+/,'').slice(0,120);
+
+    return { tipo, marca, resultado, atendio, fechaReunion, notas, hunter,
+             fecha: today.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}),
+             hora: today.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) };
+  }
+
+  window.runBotParse = function(){
+    const text = (document.getElementById('botText').value||'').trim();
+    const hunter = document.getElementById('botHunterSel').value;
+    if(!text){ document.getElementById('botText').focus(); return; }
+
+    botParsed = parseBotText(text, hunter);
+    const p = botParsed;
+
+    // Mostrar preview
+    document.getElementById('bp-hunter').textContent = p.hunter;
+    document.getElementById('bp-marca').textContent = p.marca || '⚠️ No detectada';
+    document.getElementById('bp-tipo').textContent = p.tipo;
+    document.getElementById('bp-resultado').textContent = p.resultado;
+    document.getElementById('bp-atendio').textContent = p.atendio;
+    const rRow = document.getElementById('bp-reunionRow');
+    const rVal = document.getElementById('bp-reunion');
+    if(p.fechaReunion){ rRow.style.display='flex'; rVal.textContent=p.fechaReunion; }
+    else { rRow.style.display='none'; }
+    const nRow = document.getElementById('bp-notasRow');
+    if(p.notas){ nRow.style.display='flex'; document.getElementById('bp-notas').textContent=p.notas; }
+    else { nRow.style.display='none'; }
+
+    const warn = document.getElementById('bp-warn');
+    if(!p.marca){ warn.textContent='⚠️ Marca no detectada automáticamente. Revisá el texto.'; warn.style.display='block'; }
+    else { warn.style.display='none'; }
+
+    document.getElementById('botPreview').classList.add('show');
+    // Cambiar botón a "Confirmar"
+    document.getElementById('botParseBtn').textContent = '✅ Confirmar';
+    document.getElementById('botParseBtn').onclick = confirmBotEntry;
+  };
+
+  window.confirmBotEntry = function(){
+    if(!botParsed) return;
+    const p = botParsed;
+    if(!p.marca){
+      const m = prompt('Escribí el nombre de la marca:','');
+      if(!m) return;
+      p.marca = m.trim();
+    }
+    const entry = {
+      id: Date.now() + Math.random(),
+      hunter: p.hunter,
+      fecha: p.fecha,
+      hora: p.hora,
+      marca: p.marca,
+      tipo: p.tipo,
+      resultado: p.resultado,
+      atendio: p.atendio,
+      fechaReunion: p.fechaReunion || '',
+      notas: p.notas || '',
+      resReunion: '',
+      origen: 'bot'
+    };
+    calls.push(entry);
+    persist();
+    refresh();
+    closeBotFn();
+    document.getElementById('botText').value = '';
+    hideBotPreview();
+    showBotToast(`✅ ${entry.tipo} a ${entry.marca} registrada para ${entry.hunter}`);
+  };
+
+  function showBotToast(msg){
+    const t = document.getElementById('botToast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),3200);
+  }
+
+  // ── Voz ──
+  window.toggleBotVoice = function(){
+    if(botListening) stopBotVoice();
+    else startBotVoice();
+  };
+
+  function startBotVoice(){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ alert('Tu navegador no soporta reconocimiento de voz. Usá Chrome.'); return; }
+    botRecog = new SR();
+    botRecog.lang = 'es-AR';
+    botRecog.interimResults = true;
+    botRecog.continuous = false;
+    const btn = document.getElementById('botMicBtn');
+    btn.classList.add('active');
+    btn.innerHTML = '⏹';
+    botListening = true;
+    const ta = document.getElementById('botText');
+    botRecog.onresult = e=>{
+      let interim='', final='';
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        if(e.results[i].isFinal) final+=e.results[i][0].transcript;
+        else interim+=e.results[i][0].transcript;
+      }
+      ta.value = (final||interim).trim();
+    };
+    botRecog.onend = ()=>{ stopBotVoice(); if(ta.value.trim()) runBotParse(); };
+    botRecog.onerror = ()=>stopBotVoice();
+    botRecog.start();
+  }
+
+  function stopBotVoice(){
+    botListening = false;
+    const btn = document.getElementById('botMicBtn');
+    if(btn){ btn.classList.remove('active'); btn.innerHTML='🎤'; }
+    try{ if(botRecog) botRecog.stop(); }catch(e){}
+    botRecog = null;
+  }
+
+  // Escuchar Enter en textarea (Shift+Enter = nueva línea)
+  document.getElementById('botText').addEventListener('keydown', e=>{
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); runBotParse(); }
+  });
+
+})();
 </script>
 </body>
 </html>

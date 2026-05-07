@@ -421,6 +421,9 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
       <div class="cfg-row"><label>Objetivo de llamadas/día</label>
         <input type="number" id="cfgTarget" min="1" max="50" style="max-width:100px">
         <span style="font-size:11px;color:var(--gray);margin-top:2px">Jueves = día de campo (se excluye)</span></div>
+      <div class="cfg-row"><label>Meta de puntos/mes (equipo)</label>
+        <input type="number" id="cfgPointGoal" min="50" max="5000" style="max-width:100px">
+        <span style="font-size:11px;color:var(--gray);margin-top:2px">Contactos ponderados totales</span></div>
       <div class="cfg-row"><label>Período actual</label>
         <input type="text" id="cfgPeriod" placeholder="Ej: Mayo 2026" style="max-width:160px"></div>
       <button class="btn btn-primary btn-sm" onclick="saveConfig()">Guardar</button>
@@ -434,6 +437,25 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
         <input type="text" id="newHunterName" placeholder="Nombre del hunter" style="flex:1">
         <button class="btn btn-primary btn-sm" onclick="addHunter()">+ Agregar</button>
       </div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="sec" style="margin-top:0">⭐ Tabla de puntaje por resultado</div>
+      <p style="font-size:12px;color:var(--gray);margin-bottom:12px">Cada contacto suma puntos según tipo + resultado. Editá los pesos según la realidad de tu equipo.</p>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="border-bottom:2px solid var(--border)">
+          <th style="text-align:left;padding:4px 8px">Resultado</th>
+          <th style="text-align:center;padding:4px 8px;color:var(--blue)">📞 Llamada</th>
+          <th style="text-align:center;padding:4px 8px;color:var(--green)">📍 Visita</th>
+        </tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;font-weight:600">✅ Reunión agendada</td><td style="text-align:center"><input type="number" id="sc_ll_meet" min="0" max="50" step="0.5" style="width:60px;text-align:center"></td><td style="text-align:center"><input type="number" id="sc_vv_meet" min="0" max="50" step="0.5" style="width:60px;text-align:center"></td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;font-weight:600">🔄 Volver a llamar</td><td style="text-align:center"><input type="number" id="sc_ll_int" min="0" max="50" step="0.5" style="width:60px;text-align:center"></td><td style="text-align:center"><input type="number" id="sc_vv_int" min="0" max="50" step="0.5" style="width:60px;text-align:center"></td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;font-weight:600">❌ No interesado</td><td style="text-align:center"><input type="number" id="sc_ll_noint" min="0" max="50" step="0.5" style="width:60px;text-align:center"></td><td style="text-align:center"><input type="number" id="sc_vv_noint" min="0" max="50" step="0.5" style="width:60px;text-align:center"></td></tr>
+          <tr><td style="padding:6px 8px;font-weight:600">📵 No atendió / No estaba</td><td style="text-align:center"><input type="number" id="sc_ll_na" min="0" max="50" step="0.5" style="width:60px;text-align:center"></td><td style="text-align:center"><input type="number" id="sc_vv_na" min="0" max="50" step="0.5" style="width:60px;text-align:center"></td></tr>
+        </tbody>
+      </table>
+      <button class="btn btn-primary btn-sm" onclick="saveConfig()" style="margin-top:12px">Guardar puntajes</button>
     </div>
 
     <div class="cfg-card">
@@ -556,7 +578,13 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
 <script>
 // ─── SEED DATA ────────────────────────────────────────────────────────────
 const SEED_CALLS = [{"id":1,"fecha":"2026-04-29","hunter":"Natan","marca":"Commablue","contacto":"Sara","cargo":"","atendio":"Sí","resultado":"Reunión agendada","fechaReunion":"","resReunion":"Pendiente","notas":"Interés confirmado. Queda pactar reunión. Visitar jueves."},{"id":2,"fecha":"2026-04-29","hunter":"Natan","marca":"Gimos","contacto":"","cargo":"","atendio":"No","resultado":"No atendió","fechaReunion":"","resReunion":"N/A","notas":"Llamamos 2 veces. Visitar jueves."},{"id":3,"fecha":"2026-04-29","hunter":"Natan","marca":"Ginger","contacto":"","cargo":"","atendio":"No","resultado":"No atendió","fechaReunion":"","resReunion":"N/A","notas":"No atienden. Visitar jueves."},{"id":4,"fecha":"2026-04-29","hunter":"Natan","marca":"PLAC","contacto":"","cargo":"","atendio":"No","resultado":"No atendió","fechaReunion":"","resReunion":"N/A","notas":"No atiende. Visitar jueves."},{"id":5,"fecha":"2026-04-29","hunter":"Natan","marca":"Nicole","contacto":"Damián","cargo":"","atendio":"Sí","resultado":"Volver a llamar","fechaReunion":"","resReunion":"N/A","notas":"Damián de viaje. Le mandamos Wpp."},{"id":6,"fecha":"2026-04-29","hunter":"Natan","marca":"Vadimoda","contacto":"","cargo":"","atendio":"No","resultado":"No atendió","fechaReunion":"","resReunion":"N/A","notas":"No atiende. Visitar local jueves."},{"id":7,"fecha":"2026-04-29","hunter":"Natan","marca":"Arys","contacto":"Juana","cargo":"Vendedora","atendio":"Sí","resultado":"Volver a llamar","fechaReunion":"","resReunion":"N/A","notas":"Juana (vendedora) atendió. Ariel es el dueño. Visitar jueves."},{"id":8,"fecha":"2026-04-29","hunter":"Natan","marca":"Bélgica","contacto":"","cargo":"","atendio":"No","resultado":"No atendió","fechaReunion":"","resReunion":"N/A","notas":"No atendió. Visitar jueves."},{"id":9,"fecha":"2026-04-29","hunter":"Natan","marca":"Morezo","contacto":"","cargo":"","atendio":"No","resultado":"No atendió","fechaReunion":"","resReunion":"N/A","notas":"No atiende. Visitar jueves."},{"id":10,"fecha":"2026-04-29","hunter":"Natan","marca":"Cuanca","contacto":"Cristian","cargo":"Dueño","atendio":"Sí","resultado":"Volver a llamar","fechaReunion":"","resReunion":"N/A","notas":"Cristian (dueño) de viaje. Vuelve semana próxima."}];
-const SEED_CFG = {goalTeam:50, days:21, callTarget:15, period:'Abril 2026', hunters:['Lu','Nico','Bauti','Natan']};
+const SEED_CFG = {goalTeam:50, days:21, callTarget:15, period:'Abril 2026', hunters:['Lu','Nico','Bauti','Natan'],
+  pointGoal: 350,
+  contactScores: {
+    llamada_meeting:5, llamada_interest:2, llamada_noInt:1, llamada_noAttend:0.5,
+    visita_meeting:12, visita_interest:7,  visita_noInt:4,  visita_noAttend:2
+  }
+};
 
 // ─── GOOGLE SHEET SYNC ────────────────────────────────────────────────────
 const SHEET_ID  = '1GrTMoE-Fy_cPa8Vh7Wr833Me1Z9CDgkM8PbEyxHQJjk';
@@ -662,6 +690,17 @@ function syncConfigUI() {
   document.getElementById('cfgDays').value = config.days;
   if(document.getElementById('cfgTarget')) document.getElementById('cfgTarget').value = config.callTarget||15;
   document.getElementById('cfgPeriod').value = config.period;
+  const el = id => document.getElementById(id);
+  if(el('cfgPointGoal')) el('cfgPointGoal').value = config.pointGoal||350;
+  const sc = config.contactScores || SEED_CFG.contactScores;
+  if(el('sc_ll_meet'))  el('sc_ll_meet').value  = sc.llamada_meeting  ?? 5;
+  if(el('sc_ll_int'))   el('sc_ll_int').value   = sc.llamada_interest ?? 2;
+  if(el('sc_ll_noint')) el('sc_ll_noint').value = sc.llamada_noInt    ?? 1;
+  if(el('sc_ll_na'))    el('sc_ll_na').value    = sc.llamada_noAttend ?? 0.5;
+  if(el('sc_vv_meet'))  el('sc_vv_meet').value  = sc.visita_meeting   ?? 12;
+  if(el('sc_vv_int'))   el('sc_vv_int').value   = sc.visita_interest  ?? 7;
+  if(el('sc_vv_noint')) el('sc_vv_noint').value = sc.visita_noInt     ?? 4;
+  if(el('sc_vv_na'))    el('sc_vv_na').value    = sc.visita_noAttend  ?? 2;
 }
 
 // ─── METRICS HELPERS ──────────────────────────────────────────────────────
@@ -692,10 +731,25 @@ function metricsFor(subset) {
   const rVisitaMeet    = visitas  ? visitaMeeting/visitas   : 0;
   const rLlamadaMeet   = llamadas ? llamadaMeeting/llamadas : 0;
 
+  const points = subset.reduce((s,c)=>s+weightedPoints(c),0);
+
   return {total,attended,noAttended,meetings,closed,warm,noInt,interested,followUp,
           uniqueBrands,brandsWithMeeting,rAns,rMeet,rMeetAns,rClose,rInterest,rMeetInt,
-          visitas,llamadas,visitaMeeting,llamadaMeeting,rVisitaMeet,rLlamadaMeet};
+          visitas,llamadas,visitaMeeting,llamadaMeeting,rVisitaMeet,rLlamadaMeet,points};
 }
+// ─── CONTACTO PONDERADO ───────────────────────────────────────────────────
+// Retorna los puntos de un contacto según tipo + resultado
+function weightedPoints(c) {
+  const sc = config.contactScores || SEED_CFG.contactScores;
+  const isVisita = c.tipo === 'Visita presencial';
+  const pre = isVisita ? 'visita' : 'llamada';
+  const res = c.resultado || '';
+  if (res === 'Reunión agendada')   return sc[pre+'_meeting']  ?? (isVisita ? 12 : 5);
+  if (res === 'Volver a llamar')    return sc[pre+'_interest'] ?? (isVisita ? 7  : 2);
+  if (res === 'No interesado')      return sc[pre+'_noInt']    ?? (isVisita ? 4  : 1);
+  return sc[pre+'_noAttend'] ?? (isVisita ? 2 : 0.5);  // No atendió, buzón, etc.
+}
+
 function uniqueDays(subset) { return new Set((subset||calls).map(c=>c.fecha)).size; }
 function hunterColor(name) {
   const idx = config.hunters.indexOf(name);
@@ -824,6 +878,16 @@ function renderDashboard() {
     </div>
     `;
 
+  // ── Contacto ponderado ──
+  const pgTotal   = isPersonal ? Math.round((config.pointGoal||350)/config.hunters.length) : (config.pointGoal||350);
+  const pgEarned  = subset.reduce((s,c)=>s+weightedPoints(c),0);
+  const pgPct     = pgTotal > 0 ? Math.min(pgEarned/pgTotal,1) : 0;
+  const pgLeft    = Math.max(pgTotal - pgEarned, 0);
+  const pgExpect  = daysEl > 0 ? Math.round(daysEl/config.days * pgTotal) : 0;
+  const pgAhead   = pgEarned >= pgExpect;
+  const ptsL      = subsetLlamadas.reduce((s,c)=>s+weightedPoints(c),0);
+  const ptsV      = subsetVisitas.reduce((s,c)=>s+weightedPoints(c),0);
+
   // Calls progress bar
   const cpEl = document.getElementById('callsProgressWrap');
   if(cpEl) cpEl.innerHTML = `
@@ -842,6 +906,32 @@ function renderDashboard() {
           <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:2px;background:var(--red);display:inline-block;border-radius:2px"></span>Deberías ir en <strong style="color:var(--dark)">${expectedSoFar}</strong></span>
           <span>Faltan <strong style="color:var(--dark)">${callsLeft}</strong> llamadas</span>
         </span>
+      </div>
+    </div>
+
+    <div class="prog-wrap" style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+        <strong style="font-size:13px;color:var(--dark)">⭐ Contactos ponderados — ${isPersonal?viewAs:'Equipo'}</strong>
+        <span style="font-size:13px;font-weight:700;color:${pgAhead?'var(--green)':'var(--red)'}">${pgEarned.toFixed(1)} / ${pgTotal} pts (${(pgPct*100).toFixed(0)}%) ${pgAhead?'▲ adelante':'▼ abajo'}</span>
+      </div>
+      <div style="position:relative;height:16px;background:#E9E9E9;border-radius:20px;overflow:hidden;margin:10px 0 6px">
+        ${ptsL>0?`<div style="position:absolute;top:0;left:0;height:100%;width:${Math.min(ptsL/pgTotal*100,100).toFixed(1)}%;background:var(--blue);border-radius:20px 0 0 20px;opacity:.85"></div>`:''}
+        ${ptsV>0?`<div style="position:absolute;top:0;left:${Math.min(ptsL/pgTotal*100,100).toFixed(1)}%;height:100%;width:${Math.min(ptsV/pgTotal*100,100).toFixed(1)}%;background:var(--green);border-radius:${ptsL===0?'20px':'0 20px 20px 0'};opacity:.9"></div>`:''}
+        <div style="position:absolute;top:0;left:${Math.min(pgExpect/pgTotal*100,99).toFixed(1)}%;height:100%;width:2px;background:var(--red);opacity:.7" title="Esperado: ${pgExpect}"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#999">
+        <span style="display:flex;gap:10px">
+          ${ptsL>0?`<span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:3px;background:var(--blue);display:inline-block;border-radius:2px;opacity:.85"></span>${ptsL.toFixed(1)} pts llamadas</span>`:''}
+          ${ptsV>0?`<span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:3px;background:var(--green);display:inline-block;border-radius:2px"></span>${ptsV.toFixed(1)} pts visitas</span>`:''}
+        </span>
+        <span style="display:flex;align-items:center;gap:14px">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:2px;background:var(--red);display:inline-block;border-radius:2px"></span>Deberías ir en <strong style="color:var(--dark)">${pgExpect}</strong></span>
+          <span>Faltan <strong style="color:var(--dark)">${pgLeft.toFixed(1)}</strong> pts</span>
+        </span>
+      </div>
+      <div style="font-size:10px;color:#bbb;margin-top:4px">
+        Tabla de puntaje: 📞 reunión ${config.contactScores?.llamada_meeting??5}pts · interés ${config.contactScores?.llamada_interest??2}pts · no int. ${config.contactScores?.llamada_noInt??1}pt · no atiende ${config.contactScores?.llamada_noAttend??0.5}pt &nbsp;|&nbsp;
+        📍 reunión ${config.contactScores?.visita_meeting??12}pts · interés ${config.contactScores?.visita_interest??7}pts · no int. ${config.contactScores?.visita_noInt??4}pts · no estaba ${config.contactScores?.visita_noAttend??2}pts
       </div>
     </div>`;
 
@@ -2091,6 +2181,19 @@ function saveConfig(silent=false) {
   config.days       = parseInt(document.getElementById('cfgDays').value)||21;
   config.callTarget = parseInt(document.getElementById('cfgTarget').value)||15;
   config.period     = document.getElementById('cfgPeriod').value.trim()||'Mes actual';
+  config.pointGoal  = parseFloat(document.getElementById('cfgPointGoal')?.value)||350;
+  // Score table
+  const getSc = id => { const el=document.getElementById(id); return el?parseFloat(el.value)||0:null; };
+  config.contactScores = {
+    llamada_meeting:  getSc('sc_ll_meet')  ?? (config.contactScores?.llamada_meeting  ?? 5),
+    llamada_interest: getSc('sc_ll_int')   ?? (config.contactScores?.llamada_interest ?? 2),
+    llamada_noInt:    getSc('sc_ll_noint') ?? (config.contactScores?.llamada_noInt    ?? 1),
+    llamada_noAttend: getSc('sc_ll_na')    ?? (config.contactScores?.llamada_noAttend ?? 0.5),
+    visita_meeting:   getSc('sc_vv_meet')  ?? (config.contactScores?.visita_meeting   ?? 12),
+    visita_interest:  getSc('sc_vv_int')   ?? (config.contactScores?.visita_interest  ?? 7),
+    visita_noInt:     getSc('sc_vv_noint') ?? (config.contactScores?.visita_noInt     ?? 4),
+    visita_noAttend:  getSc('sc_vv_na')    ?? (config.contactScores?.visita_noAttend  ?? 2),
+  };
   localStorage.setItem('hunting_v2_config',JSON.stringify(config));
   renderConfigHunters();
   syncViewSelect();

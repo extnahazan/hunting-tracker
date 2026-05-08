@@ -128,14 +128,5 @@
     "fechaReunion": "",
     "resReunion": "N/A",
     "notas": "Cristian (dueño) de viaje. Vuelve semana próxima."
-  },
-  {
-    "id": "sync-test-1778242225815",
-    "hunter": "Natan",
-    "fecha": "2026-05-08",
-    "marca": "TestSync",
-    "tipo": "Llamada",
-    "resultado": "Interesado",
-    "notas": "test sync cross-device"
   }
 ]

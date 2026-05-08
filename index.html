@@ -726,9 +726,8 @@ let ghSyncActive = false, ghPollTimer = null;
 async function ghRead() {
   try {
     // Usar API (no raw URL) para evitar cache CDN de GitHub
-    const r = await fetch(GH_API, {
-      headers:{'Authorization':'token '+GH_TOKEN,'Accept':'application/vnd.github.v3+json',
-               'Cache-Control':'no-cache'}
+    const r = await fetch(GH_API + '?t=' + Date.now(), {
+      headers:{'Authorization':'token '+GH_TOKEN,'Accept':'application/vnd.github.v3+json'}
     });
     if(!r.ok) return null;
     const info = await r.json();

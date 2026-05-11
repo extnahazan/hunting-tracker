@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tracker Hunting — MercadoLibre</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -77,7 +78,7 @@ body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:#EBEBEB;color:#1
 
 /* ── KPI GROUPS ── */
 /* 3 secciones en columnas */
-.kpi-sections{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start;margin-bottom:24px}
+.kpi-sections{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;align-items:start;margin-bottom:24px}
 .kpi-group{background:#fff;border-radius:14px;padding:16px;box-shadow:var(--shadow)}
 .kpi-group-lbl{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;padding-left:2px;display:flex;align-items:center;gap:8px}
 .kpi-group-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
@@ -256,6 +257,71 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
 .bot-btn-clear:hover{background:#F5F5F5}
 .bot-toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .3s;z-index:99999;white-space:nowrap}
 .bot-toast.show{opacity:1}
+
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);z-index:500;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -2px 12px rgba(0,0,0,.10)}
+.mobile-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px 7px;cursor:pointer;color:#999;font-size:10px;font-weight:600;gap:2px;transition:color .15s;-webkit-tap-highlight-color:transparent;border:none;background:none;font-family:inherit}
+.mobile-nav-item.active{color:var(--blue)}
+.mobile-nav-item .nav-icon{font-size:22px;line-height:1}
+.mob-add-fab{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);z-index:600;background:var(--blue);color:#fff;border:none;border-radius:28px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(52,131,250,.45);display:none;align-items:center;gap:8px;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+
+/* ── MOBILE BREAKPOINT ── */
+@media(max-width:640px){
+  body{padding-bottom:60px}
+  .header{padding:0 10px;min-height:50px;gap:6px}
+  .header h1{font-size:12px}
+  .header .meta{display:none}
+  .header-logo .logo-text{display:none}
+  .hbtn{padding:5px 9px;font-size:11px}
+  .hbtn-hide-mob{display:none}
+  .tabs{display:none}
+  .mobile-nav{display:flex}
+  .panel{padding:12px 10px}
+  /* KPI */
+  .kpi-sections{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi-row{grid-auto-rows:auto;gap:6px}
+  .kpi{padding:10px 12px 8px}
+  .kpi .val{font-size:22px;letter-spacing:-1px}
+  .kpi .lbl{font-size:9px}
+  .kpi .sub{font-size:10px}
+  /* Charts */
+  .chart-grid,.chart-grid-3{grid-template-columns:1fr}
+  .chart-card{padding:14px}
+  /* Projection */
+  .proj-item{padding:10px 6px}
+  .pv{font-size:20px}
+  /* Table */
+  .table-toolbar{flex-direction:column;align-items:stretch;gap:6px;padding:10px}
+  .toolbar-left{flex-direction:column}
+  .search-box{width:100%}
+  input[type=text],input[type=date],select{font-size:16px;padding:10px 12px} /* 16px evita zoom en iOS */
+  /* Modal → sheet desde abajo */
+  .modal-overlay{align-items:flex-end}
+  .modal{width:100vw;max-width:100vw;border-radius:20px 20px 0 0;max-height:96vh;padding:20px 14px 24px}
+  .form-grid{grid-template-columns:1fr}
+  .form-group.full{grid-column:span 1}
+  .modal-actions{position:sticky;bottom:0;background:#fff;padding-top:12px;margin-bottom:0}
+  /* Bot */
+  .bot-panel{width:100vw;max-height:100dvh;border-radius:0;top:0;left:0;transform:none;opacity:1}
+  .bot-panel.open{transform:none}
+  .bot-fab{bottom:72px;right:14px;width:50px;height:50px;font-size:22px}
+  /* Hunter grid */
+  .hunter-grid{grid-template-columns:1fr}
+  /* Sec */
+  .sec{margin:16px 0 10px;font-size:10px}
+  /* Prog */
+  .prog-wrap{padding:14px}
+  /* cfg */
+  .cfg-grid{grid-template-columns:1fr}
+  /* Sync bar */
+  .sync-bar{padding:5px 10px;font-size:10px}
+  /* Mob add fab */
+  .mob-add-fab{display:flex}
+}
+@media(min-width:641px){
+  .mobile-nav{display:none!important}
+  .mob-add-fab{display:none!important}
+}
 </style>
 </head>
 <body>
@@ -276,7 +342,8 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
       <option value="global" style="color:#1e293b">🌐 Equipo</option>
     </select>
     <button class="hbtn hbtn-blue" onclick="syncFromSheet(true)">↻ Sincronizar</button>
-    <button class="hbtn hbtn-yellow" onclick="window.open('https://docs.google.com/spreadsheets/d/1GrTMoE-Fy_cPa8Vh7Wr833Me1Z9CDgkM8PbEyxHQJjk/edit','_blank')">📊 Abrir Sheet</button>
+    <button class="hbtn" onclick="downloadExcel()" title="Descargar Excel con todos los registros">📥 <span class="hbtn-hide-mob">Excel</span></button>
+    <button class="hbtn hbtn-yellow hbtn-hide-mob" onclick="window.open('https://docs.google.com/spreadsheets/d/1GrTMoE-Fy_cPa8Vh7Wr833Me1Z9CDgkM8PbEyxHQJjk/edit','_blank')">📊 Abrir Sheet</button>
   </div>
 </div>
 <div id="syncBar" class="sync-bar sync-gray">⏳ Conectando con Google Sheet...</div>
@@ -582,9 +649,10 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
       <div class="form-group"><label>¿Atendió?</label>
         <select id="fAtendio"><option value="No">No</option><option value="Sí">Sí</option></select></div>
       <div class="form-group"><label>Resultado</label>
-        <select id="fResultado" onchange="toggleRechazo(this.value)">
+        <select id="fResultado" onchange="toggleRechazo(this.value);toggleReunionFields(this.value)">
           <option>No atendió</option><option>Buzón de voz</option><option>Dejó mensaje</option>
           <option>Volver a llamar</option><option>No interesado</option><option>Reunión agendada</option>
+          <option>Interesado</option>
         </select></div>
       <div class="form-group full" id="fMotRechazoWrap" style="display:none">
         <label>Motivo de rechazo</label>
@@ -599,8 +667,8 @@ textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(52,131,250,.12
           <option>Otro</option>
         </select>
       </div>
-      <div class="form-group"><label>Fecha reunión</label><input type="date" id="fFechaReunion"></div>
-      <div class="form-group"><label>Resultado reunión</label>
+      <div class="form-group" id="fFechaReunionWrap"><label>Fecha reunión</label><input type="date" id="fFechaReunion"></div>
+      <div class="form-group" id="fResReunionWrap"><label>Resultado reunión 🤝</label>
         <select id="fResReunion">
           <option>N/A</option><option>Pendiente</option><option>En proceso</option>
           <option>Cerrado</option><option>No avanzó</option>
@@ -1032,6 +1100,35 @@ function renderDashboard() {
           </div>`}
         </div>
       </div>
+
+      <!-- ── REUNIONES ── -->
+      ${(()=>{
+        const reuniones = subset.filter(c=>c.resultado==='Reunión agendada');
+        const rTotal    = reuniones.length;
+        const rCelebr   = reuniones.filter(c=>c.resReunion && c.resReunion!=='Pendiente' && c.resReunion!=='N/A').length;
+        const rCerr     = reuniones.filter(c=>c.resReunion==='Cerrado').length;
+        const rProc     = reuniones.filter(c=>c.resReunion==='En proceso').length;
+        const rNoAdv    = reuniones.filter(c=>c.resReunion==='No avanzó').length;
+        const rPend     = reuniones.filter(c=>c.resReunion==='Pendiente'||!c.resReunion||c.resReunion==='N/A').length;
+        const convRate  = rTotal>0 ? (rCerr/rTotal*100).toFixed(1) : '0.0';
+        return rTotal === 0 ? `
+        <div class="kpi-group" style="border-left:3px solid var(--green-l)">
+          <div class="kpi-group-lbl">🤝 Reuniones</div>
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 12px;color:#bbb;text-align:center;gap:8px">
+            <span style="font-size:28px">🤝</span>
+            <span style="font-size:12px">Sin reuniones aún.<br>Al cerrar una reunión aparecen acá los KPIs de conversión.</span>
+          </div>
+        </div>` : `
+        <div class="kpi-group" style="border-left:3px solid var(--green)">
+          <div class="kpi-group-lbl">🤝 Reuniones</div>
+          <div class="kpi-row">
+            <div class="kpi c-green"><div class="lbl">Reuniones agendadas</div><div class="val">${rTotal}</div><div class="sub">${rPend} pendientes · ${rCelebr} celebradas</div></div>
+            <div class="kpi c-green"><div class="lbl">Tasa de conversión</div><div class="val">${convRate}%</div><div class="sub">${rCerr} cerradas de ${rTotal} reuniones</div></div>
+            <div class="kpi c-blue"><div class="lbl">En proceso</div><div class="val">${rProc}</div><div class="sub">Marcas que están avanzando</div></div>
+            <div class="kpi c-red"><div class="lbl">No avanzaron</div><div class="val">${rNoAdv}</div><div class="sub">${rTotal>0?(rNoAdv/rTotal*100).toFixed(0):'0'}% de las reuniones</div></div>
+          </div>
+        </div>`;
+      })()}
 
     </div>
     `;
@@ -2091,6 +2188,31 @@ function renderHunters() {
         </div>
       </div>
 
+      <!-- ── REUNIONES (Per hunter) ── -->
+      ${(()=>{
+        const rH = hCalls.filter(c=>c.resultado==='Reunión agendada');
+        const rHTotal = rH.length;
+        const rHCerr  = rH.filter(c=>c.resReunion==='Cerrado').length;
+        const rHProc  = rH.filter(c=>c.resReunion==='En proceso').length;
+        const rHNoAdv = rH.filter(c=>c.resReunion==='No avanzó').length;
+        const rHPend  = rH.filter(c=>!c.resReunion||c.resReunion==='Pendiente'||c.resReunion==='N/A').length;
+        if(rHTotal===0) return `
+        <div class="kpi-group" style="border-left:3px solid var(--green-l)">
+          <div class="kpi-group-lbl">🤝 Reuniones</div>
+          <div style="text-align:center;padding:20px;color:#bbb;font-size:12px">Sin reuniones aún</div>
+        </div>`;
+        return `
+        <div class="kpi-group" style="border-left:3px solid var(--green)">
+          <div class="kpi-group-lbl">🤝 Reuniones</div>
+          <div class="kpi-row">
+            <div class="kpi c-green"><div class="lbl">Agendadas</div><div class="val">${rHTotal}</div><div class="sub">${rHPend} pendientes</div></div>
+            <div class="kpi c-green"><div class="lbl">Conversión</div><div class="val">${rHTotal>0?(rHCerr/rHTotal*100).toFixed(0):0}%</div><div class="sub">${rHCerr} cerradas</div></div>
+            <div class="kpi c-blue"><div class="lbl">En proceso</div><div class="val">${rHProc}</div><div class="sub">Avanzando</div></div>
+            <div class="kpi c-red"><div class="lbl">No avanzaron</div><div class="val">${rHNoAdv}</div><div class="sub">${rHTotal>0?(rHNoAdv/rHTotal*100).toFixed(0):0}% del total</div></div>
+          </div>
+        </div>`;
+      })()}
+
     </div>`;
 
   document.getElementById('hunterDetail').innerHTML = `
@@ -2367,6 +2489,13 @@ function saveConfig(silent=false) {
 function toggleRechazo(val) {
   document.getElementById('fMotRechazoWrap').style.display = val === 'No interesado' ? '' : 'none';
 }
+function toggleReunionFields(val) {
+  const show = val === 'Reunión agendada';
+  const fw = document.getElementById('fFechaReunionWrap');
+  const rw = document.getElementById('fResReunionWrap');
+  if(fw) fw.style.opacity = show ? '1' : '.45';
+  if(rw) rw.style.opacity = show ? '1' : '.45';
+}
 function openModal(id) {
   editingId=id||null;
   const today = new Date().toISOString().slice(0,10);
@@ -2388,6 +2517,7 @@ function openModal(id) {
     document.getElementById('fResReunion').value=c.resReunion;
     document.getElementById('fNotas').value=c.notas;
     toggleRechazo(c.resultado);
+    toggleReunionFields(c.resultado);
   } else {
     document.getElementById('modalTitle').textContent='Nueva llamada';
     document.getElementById('fFecha').value=today;
@@ -2400,6 +2530,7 @@ function openModal(id) {
     document.getElementById('fMotRechazo').value='';
     document.getElementById('fResReunion').value='N/A';
     toggleRechazo('No atendió');
+    toggleReunionFields('No atendió');
   }
   document.getElementById('modalOverlay').classList.add('open');
 }
@@ -2911,6 +3042,82 @@ O: "Visita a Mandala, quiere venir al summit"'></textarea>
     if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); runBotParse(); }
   });
 
+})();
+
+// ─── EXCEL DOWNLOAD ──────────────────────────────────────────────────────
+function downloadExcel() {
+  if(!window.XLSX){ alert('Librería de Excel cargando, esperá un segundo...'); return; }
+  const rows = calls.map(c => ({
+    'Fecha':          c.fecha || '',
+    'Hunter':         c.hunter || '',
+    'Tipo':           (c.notas||'').toLowerCase().match(/visit|presencial|fui |estuve|local|tienda|pas[eé] por|me acerc/) ? 'Visita' : 'Llamada',
+    'Marca':          c.marca || '',
+    'Contacto':       c.contacto || '',
+    'Cargo':          c.cargo || '',
+    'Atendió':        c.atendio || '',
+    'Resultado':      c.resultado || '',
+    'Fecha Reunión':  c.fechaReunion || '',
+    'Res. Reunión':   c.resReunion || '',
+    'Notas':          c.notas || '',
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  // Column widths
+  ws['!cols'] = [
+    {wch:12},{wch:12},{wch:10},{wch:22},{wch:18},{wch:16},
+    {wch:10},{wch:20},{wch:14},{wch:16},{wch:40}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Registro');
+  // Hoja resumen por hunter
+  const byHunter = {};
+  calls.forEach(c => {
+    const h = c.hunter || 'Sin asignar';
+    if(!byHunter[h]) byHunter[h] = {total:0,atendio:0,reunion:0};
+    byHunter[h].total++;
+    if((c.atendio||'').toLowerCase()==='sí'||(c.atendio||'').toLowerCase()==='si') byHunter[h].atendio++;
+    if(c.resultado==='Reunión agendada') byHunter[h].reunion++;
+  });
+  const sumRows = Object.entries(byHunter).map(([h,m])=>({'Hunter':h,'Total':m.total,'Atendieron':m.atendio,'Reuniones':m.reunion}));
+  const ws2 = XLSX.utils.json_to_sheet(sumRows);
+  ws2['!cols'] = [{wch:18},{wch:10},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Resumen');
+  XLSX.writeFile(wb, `Hunting_${config.period||'Registro'}.xlsx`);
+}
+
+// ─── MOBILE BOTTOM NAV ───────────────────────────────────────────────────
+(function(){
+  const navHTML = `
+  <nav class="mobile-nav" id="mobileNav">
+    <button class="mobile-nav-item active" data-tab="dashboard" onclick="mobileNav('dashboard',this)">
+      <span class="nav-icon">📊</span>Dashboard
+    </button>
+    <button class="mobile-nav-item" data-tab="hunters" onclick="mobileNav('hunters',this)">
+      <span class="nav-icon">👥</span>Hunters
+    </button>
+    <button class="mobile-nav-item" data-tab="registro" onclick="mobileNav('registro',this)">
+      <span class="nav-icon">📋</span>Registro
+    </button>
+    <button class="mobile-nav-item" onclick="openModal()">
+      <span class="nav-icon" style="background:var(--blue);color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:1px">+</span>
+      Agregar
+    </button>
+  </nav>`;
+  document.body.insertAdjacentHTML('beforeend', navHTML);
+
+  window.mobileNav = function(tabName, el) {
+    switchTab(tabName);
+    document.querySelectorAll('.mobile-nav-item').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+  };
+
+  // Sync mobile nav on desktop tab click
+  const origSwitch = window.switchTab;
+  window.switchTab = function(tab) {
+    origSwitch(tab);
+    document.querySelectorAll('.mobile-nav-item[data-tab]').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+  };
 })();
 </script>
 </body>
